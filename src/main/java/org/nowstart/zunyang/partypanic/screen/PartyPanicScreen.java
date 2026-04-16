@@ -3,24 +3,21 @@ package org.nowstart.zunyang.partypanic.screen;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.ScreenAdapter;
-import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.utils.ScreenUtils;
+import org.nowstart.zunyang.partypanic.PartyPanicGame;
 import org.nowstart.zunyang.partypanic.content.GameContent;
 import org.nowstart.zunyang.partypanic.model.ChoiceSet;
 import org.nowstart.zunyang.partypanic.model.GameState;
 import org.nowstart.zunyang.partypanic.model.PartyAction;
 import org.nowstart.zunyang.partypanic.model.TroubleEvent;
 import org.nowstart.zunyang.partypanic.state.GameStateMachine;
+import org.nowstart.zunyang.partypanic.world.GameProgress;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -60,6 +57,8 @@ public final class PartyPanicScreen extends ScreenAdapter {
     private static final Color HIGHLIGHT_MINT = new Color(0.68f, 0.90f, 0.83f, 0.92f);
     private static final Color BORDER_COLOR = new Color(0.97f, 0.86f, 0.78f, 0.90f);
 
+    private final PartyPanicGame game;
+    private final GameProgress progress;
     private final SpriteBatch batch = new SpriteBatch();
     private final GameStateMachine stateMachine = new GameStateMachine(GameContent.defaultContent());
     private final BitmapFont font;
@@ -72,29 +71,34 @@ public final class PartyPanicScreen extends ScreenAdapter {
 
     private int syntheticViewerSequence = 1;
 
-    public PartyPanicScreen() {
-        font = createFont();
-        pixelTexture = createPixelTexture();
-        hostTexture = loadTexture("images/characters/zunyang-birthday-host.png");
-        resultBackgroundTexture = loadTexture("images/ui/result-card-background.png");
+    public PartyPanicScreen(PartyPanicGame game, GameProgress progress) {
+        this.game = game;
+        this.progress = progress;
+        font = ScreenSupport.createFont(buildFontCharacters());
+        pixelTexture = ScreenSupport.createPixelTexture();
+        hostTexture = ScreenSupport.loadTexture("images/characters/zunyang-birthday-host.png");
+        resultBackgroundTexture = ScreenSupport.loadTexture("images/ui/result-card-background.png");
 
-        stageTextures.put("desk-party", loadTexture("images/backgrounds/desk-party-stage.png"));
-        stageTextures.put("mint-cats", loadTexture("images/backgrounds/mint-cats-stage.png"));
-        stageTextures.put("cake-rush", loadTexture("images/backgrounds/cake-rush-stage.png"));
-        stageTextures.put("finale", loadTexture("images/backgrounds/finale-stage.png"));
+        stageTextures.put("desk-party", ScreenSupport.loadTexture("images/backgrounds/desk-party-stage.png"));
+        stageTextures.put("mint-cats", ScreenSupport.loadTexture("images/backgrounds/mint-cats-stage.png"));
+        stageTextures.put("cake-rush", ScreenSupport.loadTexture("images/backgrounds/cake-rush-stage.png"));
+        stageTextures.put("finale", ScreenSupport.loadTexture("images/backgrounds/finale-stage.png"));
 
-        choiceCardTextures.put("fan-letter", loadTexture("images/choices/fan-letter-card.png"));
-        choiceCardTextures.put("mini-game", loadTexture("images/choices/mini-game-card.png"));
-        choiceCardTextures.put("photo-time", loadTexture("images/choices/photo-time-card.png", "images/events/photo-time-card.png"));
+        choiceCardTextures.put("fan-letter", ScreenSupport.loadTexture("images/choices/fan-letter-card.png"));
+        choiceCardTextures.put("mini-game", ScreenSupport.loadTexture("images/choices/mini-game-card.png"));
+        choiceCardTextures.put("photo-time", ScreenSupport.loadTexture("images/choices/photo-time-card.png", "images/events/photo-time-card.png"));
 
-        troubleCardTextures.put("audio-pop", loadTexture("images/events/audio-pop-card.png"));
-        troubleCardTextures.put("cake-balance", loadTexture("images/events/cake-balance-card.png"));
-        troubleCardTextures.put("camera-chaos", loadTexture("images/events/camera-chaos-card.png"));
+        troubleCardTextures.put("audio-pop", ScreenSupport.loadTexture("images/events/audio-pop-card.png"));
+        troubleCardTextures.put("cake-balance", ScreenSupport.loadTexture("images/events/cake-balance-card.png"));
+        troubleCardTextures.put("camera-chaos", ScreenSupport.loadTexture("images/events/camera-chaos-card.png"));
     }
 
     @Override
     public void render(float delta) {
         handleInput();
+        if (game != null && game.getScreen() != this) {
+            return;
+        }
         stateMachine.update(delta);
 
         ScreenUtils.clear(0.06f, 0.04f, 0.05f, 1f);
@@ -110,12 +114,22 @@ public final class PartyPanicScreen extends ScreenAdapter {
     }
 
     private void handleInput() {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE) && game != null) {
+            game.showHub("허브로 복귀했습니다. H로 돌아가면 결과를 저장할 수 있습니다.");
+            return;
+        }
+
         if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
             stateMachine.startRound();
         }
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.R) && stateMachine.getState() == GameState.ROUND_COMPLETE) {
             stateMachine.startRound();
+        }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.H) && stateMachine.getState() == GameState.ROUND_COMPLETE && game != null) {
+            game.finishBroadcastDeskMinigame(stateMachine.getRoundScore());
+            return;
         }
 
         if (stateMachine.isChoiceInputOpen()) {
@@ -212,9 +226,10 @@ public final class PartyPanicScreen extends ScreenAdapter {
 
         drawPanel(cardX, cardY, cardWidth, cardHeight, PANEL_COLOR);
         drawPanelOutline(cardX, cardY, cardWidth, cardHeight, BORDER_COLOR);
-        drawLine("치즈냥 생일 방송 프리뷰", cardX + 24f, cardY + cardHeight - 24f, 1.18f, TEXT_ACCENT);
+        drawLine("방송 책상 미니게임", cardX + 24f, cardY + cardHeight - 24f, 1.18f, TEXT_ACCENT);
         drawParagraph("SPACE로 라운드를 시작하면 배경 투표 1회, 이벤트 카드 투표 1회, 사고 대응 3회, 피날레 응원 1회가 이어집니다.", cardX + 24f, cardY + 138f, cardWidth - 48f, 0.98f, TEXT_PRIMARY);
-        drawParagraph("방송 화면은 좌측 무대만 잘라 써도 되고, 우측 패널은 운영용으로 남겨 둔 상태입니다.", cardX + 24f, cardY + 82f, cardWidth - 48f, 0.95f, TEXT_MUTED);
+        drawParagraph("라운드 완료 후 H를 누르면 허브로 돌아가며 결과가 저장됩니다. ESC는 언제든 허브 복귀입니다.", cardX + 24f, cardY + 82f, cardWidth - 48f, 0.95f, TEXT_MUTED);
+        drawLine("현재 최고 점수 " + progress.getBestScore(GameProgress.BROADCAST_DESK), cardX + 24f, cardY + 36f, 0.90f, TEXT_MINT);
     }
 
     private void drawChoiceScene() {
@@ -369,7 +384,7 @@ public final class PartyPanicScreen extends ScreenAdapter {
                 stateMachine.getFinaleTriggerThreshold()
         );
 
-        drawLine("치즈냥 생일 파티 프로토타입", HUD_X + 22f, HUD_Y + HUD_HEIGHT - 18f, 1.20f, TEXT_ACCENT);
+        drawLine("방송 책상 미니게임", HUD_X + 22f, HUD_Y + HUD_HEIGHT - 18f, 1.20f, TEXT_ACCENT);
         drawLine(stateMachine.getPhaseTitle(), HUD_X + 22f, HUD_Y + 34f, 1.08f, TEXT_PRIMARY);
         drawLine(timer, HUD_X + 440f, HUD_Y + HUD_HEIGHT - 18f, 0.98f, TEXT_PRIMARY);
         drawLine(metrics, HUD_X + 440f, HUD_Y + 34f, 0.96f, TEXT_MUTED);
@@ -394,7 +409,9 @@ public final class PartyPanicScreen extends ScreenAdapter {
         drawControlRow("E", "긴급 정리 콜", rowY - 192f, stateMachine.canTriggerEmergencyCall());
         drawControlRow("C", "피날레 응원", rowY - 240f, stateMachine.isFinaleInputOpen());
         drawControlRow("F", "생일 소원 발동", rowY - 288f, stateMachine.canTriggerFinale());
-        drawControlRow("R", "결과 후 다음 판", rowY - 336f, stateMachine.getState() == GameState.ROUND_COMPLETE);
+        drawControlRow("R", "결과 후 다시 시작", rowY - 336f, stateMachine.getState() == GameState.ROUND_COMPLETE);
+        drawControlRow("H", "결과 저장 후 허브 복귀", rowY - 384f, stateMachine.getState() == GameState.ROUND_COMPLETE);
+        drawControlRow("ESC", "허브 복귀", rowY - 432f, true);
 
         float noteY = PANEL_Y + 92f;
         drawLine("요약", left, noteY + 108f, 1.00f, TEXT_ACCENT);
@@ -522,7 +539,7 @@ public final class PartyPanicScreen extends ScreenAdapter {
             return "현재 입력: C 로 응원 추가, F 로 피날레 발동";
         }
         if (stateMachine.getState() == GameState.ROUND_COMPLETE) {
-            return "현재 입력: R 또는 SPACE 로 다음 판 시작";
+            return "현재 입력: H 로 저장 후 허브 복귀, R 또는 SPACE 로 다시 시작";
         }
         return "현재 입력: SPACE 로 라운드 시작";
     }
@@ -625,105 +642,12 @@ public final class PartyPanicScreen extends ScreenAdapter {
         return text.length() * 11.6f * scale;
     }
 
-    private BitmapFont createFont() {
-        Path fontPath = resolveFontPath();
-        FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.absolute(fontPath.toString()));
-        try {
-            FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
-            parameter.size = 24;
-            parameter.incremental = false;
-            parameter.minFilter = Texture.TextureFilter.Linear;
-            parameter.magFilter = Texture.TextureFilter.Linear;
-            parameter.characters = buildFontCharacters();
-            return generator.generateFont(parameter);
-        } finally {
-            generator.dispose();
-        }
-    }
-
-    private Texture createPixelTexture() {
-        Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
-        pixmap.setColor(Color.WHITE);
-        pixmap.fill();
-        Texture texture = new Texture(pixmap);
-        pixmap.dispose();
-        return texture;
-    }
-
-    private Texture loadTexture(String... candidates) {
-        for (String candidate : candidates) {
-            FileHandle handle = Gdx.files.internal(candidate);
-            if (handle.exists()) {
-                return new Texture(handle);
-            }
-        }
-
-        throw new IllegalStateException("Missing texture. Tried: " + String.join(", ", candidates));
-    }
-
-    private Path resolveFontPath() {
-        List<Path> candidates = new ArrayList<>();
-        candidates.add(Path.of("asset", "fonts", "NotoSansKR-Regular.ttf").toAbsolutePath());
-        candidates.add(Path.of("assets", "fonts", "NotoSansKR-Regular.ttf").toAbsolutePath());
-        candidates.add(Path.of("asset", "fonts", "malgun.ttf").toAbsolutePath());
-        candidates.add(Path.of("assets", "fonts", "malgun.ttf").toAbsolutePath());
-        candidates.add(Path.of("/mnt/c/Windows/Fonts/malgun.ttf"));
-        candidates.add(Path.of("/mnt/c/Windows/Fonts/malgunbd.ttf"));
-        candidates.add(Path.of("/mnt/c/Windows/Fonts/malgunsl.ttf"));
-
-        Path windowsMalgunFont = resolveWindowsFont("malgun.ttf");
-        if (windowsMalgunFont != null) {
-            candidates.add(windowsMalgunFont);
-        }
-
-        Path windowsMalgunBoldFont = resolveWindowsFont("malgunbd.ttf");
-        if (windowsMalgunBoldFont != null) {
-            candidates.add(windowsMalgunBoldFont);
-        }
-
-        Path windowsMalgunLightFont = resolveWindowsFont("malgunsl.ttf");
-        if (windowsMalgunLightFont != null) {
-            candidates.add(windowsMalgunLightFont);
-        }
-
-        candidates.add(Path.of("asset", "fonts", "NotoSansKR-VF.ttf").toAbsolutePath());
-        candidates.add(Path.of("assets", "fonts", "NotoSansKR-VF.ttf").toAbsolutePath());
-
-        Path windowsNotoFont = resolveWindowsFont("NotoSansKR-VF.ttf");
-        if (windowsNotoFont != null) {
-            candidates.add(windowsNotoFont);
-        }
-
-        for (Path candidate : candidates) {
-            if (Files.isRegularFile(candidate) && !isUnsupportedVariableFont(candidate)) {
-                return candidate;
-            }
-        }
-
-        throw new IllegalStateException(
-                "Korean font not found. Add a TTF under asset/fonts or install NotoSansKR/Malgun Gothic."
-        );
-    }
-
-    private boolean isUnsupportedVariableFont(Path candidate) {
-        String fileName = candidate.getFileName().toString().toLowerCase(Locale.ROOT);
-        return fileName.contains("-vf.");
-    }
-
-    private Path resolveWindowsFont(String fileName) {
-        String windowsDirectory = System.getenv("WINDIR");
-        if (windowsDirectory == null || windowsDirectory.isBlank()) {
-            return null;
-        }
-        return Path.of(windowsDirectory, "Fonts", fileName);
-    }
-
     private String buildFontCharacters() {
         Set<Character> characters = new LinkedHashSet<>();
         appendCharacters(characters, FreeTypeFontGenerator.DEFAULT_CHARS);
 
         for (String text : List.of(
-                "치즈냥 생일 파티 프로토타입",
+                "방송 책상 미니게임",
                 "남은 시간 %.1f초",
                 "참여자 %d명  |  점수 %d  |  피날레 %d/%d",
                 "운영 패널",
@@ -737,17 +661,21 @@ public final class PartyPanicScreen extends ScreenAdapter {
                 "긴급 정리 콜",
                 "피날레 응원",
                 "생일 소원 발동",
-                "결과 후 다음 판",
+                "결과 후 다시 시작",
+                "결과 저장 후 허브 복귀",
+                "허브 복귀",
                 "요약",
                 "상황: ",
                 "현재 입력: 1 2 3 으로 선택지 득표, P 로 오늘의 픽",
                 "현재 입력: V 로 대응 1회, E 로 긴급 정리 콜",
                 "현재 입력: C 로 응원 추가, F 로 피날레 발동",
-                "현재 입력: R 또는 SPACE 로 다음 판 시작",
+                "현재 입력: H 로 저장 후 허브 복귀, R 또는 SPACE 로 다시 시작",
                 "현재 입력: SPACE 로 라운드 시작",
-                "치즈냥 생일 방송 프리뷰",
+                "방송 책상 미니게임",
                 "SPACE로 라운드를 시작하면 배경 투표 1회, 이벤트 카드 투표 1회, 사고 대응 3회, 피날레 응원 1회가 이어집니다.",
-                "방송 화면은 좌측 무대만 잘라 써도 되고, 우측 패널은 운영용으로 남겨 둔 상태입니다.",
+                "라운드 완료 후 H를 누르면 허브로 돌아가며 결과가 저장됩니다. ESC는 언제든 허브 복귀입니다.",
+                "현재 최고 점수 ",
+                "허브로 복귀했습니다. H로 돌아가면 결과를 저장할 수 있습니다.",
                 "선두 선택은 분홍 테두리로 강조됩니다. 숫자 1 2 3으로 테스트 득표, P로 오늘의 픽을 넣을 수 있습니다.",
                 "현재 선두  |  테스트 득표 ",
                 "확정됨  |  테스트 득표 ",
