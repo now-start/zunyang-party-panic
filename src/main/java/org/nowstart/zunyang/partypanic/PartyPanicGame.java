@@ -59,7 +59,7 @@ public final class PartyPanicGame extends Game {
                 GameProgress.STORAGE_ROOM,
                 "장식 창고",
                 "오늘 쓸 소품을 고르는 파트",
-                "images/backgrounds/cake-rush-stage.png",
+                "assets/images/backgrounds/cake-rush-stage.png",
                 "장식 창고에서 허브로 복귀했습니다.",
                 "장식 창고 정리 완료. 케이크 테이블을 만질 수 있습니다.",
                 List.of(
@@ -95,7 +95,7 @@ public final class PartyPanicGame extends Game {
                 GameProgress.BACKSTAGE,
                 "백스테이지 복도",
                 "준비에서 기억으로 넘어가는 구간",
-                "images/backgrounds/mint-cats-stage.png",
+                "assets/images/backgrounds/mint-cats-stage.png",
                 "백스테이지 복도에서 허브로 복귀했습니다.",
                 "복도에서 기억 조각을 확인했습니다. 팬레터 우편함이 열렸습니다.",
                 List.of(
@@ -113,7 +113,7 @@ public final class PartyPanicGame extends Game {
                 GameProgress.FAN_LETTER,
                 "팬레터 우편함",
                 "예전 편지를 다시 읽는 파트",
-                "images/backgrounds/desk-party-stage.png",
+                "assets/images/backgrounds/desk-party-stage.png",
                 "팬레터 우편함에서 허브로 복귀했습니다.",
                 "팬레터를 확인했습니다. 마지막 무대 문이 열렸습니다.",
                 List.of(
@@ -132,7 +132,7 @@ public final class PartyPanicGame extends Game {
                 GameProgress.FINALE_STAGE,
                 "생일 방송 무대",
                 progress.getEndingTitle() + " 예정",
-                "images/backgrounds/finale-stage.png",
+                "assets/images/backgrounds/finale-stage.png",
                 "생일 방송 무대에서 허브로 복귀했습니다.",
                 progress.getEndingTitle() + " 샘플 엔딩을 확인했습니다. 준비방에서 다시 둘러볼 수 있습니다.",
                 List.of(

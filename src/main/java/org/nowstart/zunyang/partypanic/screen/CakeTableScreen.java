@@ -59,9 +59,9 @@ public final class CakeTableScreen extends ScreenAdapter {
         this.progress = progress;
         this.font = ScreenSupport.createFont(buildFontCharacters());
         this.pixelTexture = ScreenSupport.createPixelTexture();
-        this.backgroundTexture = ScreenSupport.loadTexture("images/backgrounds/cake-rush-stage.png");
-        this.cakeTexture = ScreenSupport.loadTexture("images/events/cake-balance-card.png");
-        this.hostTexture = ScreenSupport.loadTexture("images/characters/zunyang-birthday-host.png");
+        this.backgroundTexture = ScreenSupport.loadTexture("assets/images/backgrounds/cake-rush-stage.png");
+        this.cakeTexture = ScreenSupport.loadTexture("assets/images/events/cake-balance-card.png");
+        this.hostTexture = ScreenSupport.loadTexture("assets/images/characters/zunyang-birthday-host.png");
     }
 
     @Override

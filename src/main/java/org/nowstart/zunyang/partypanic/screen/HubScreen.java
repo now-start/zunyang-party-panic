@@ -8,470 +8,480 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
-import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.ScreenUtils;
 import org.nowstart.zunyang.partypanic.PartyPanicGame;
+import org.nowstart.zunyang.partypanic.screen.hub.HubDirection;
+import org.nowstart.zunyang.partypanic.screen.hub.HubEventVisual;
+import org.nowstart.zunyang.partypanic.screen.hub.HubMapEvent;
+import org.nowstart.zunyang.partypanic.screen.hub.HubMapModel;
+import org.nowstart.zunyang.partypanic.screen.ui.DialogueWindowRenderer;
+import org.nowstart.zunyang.partypanic.screen.ui.PixelUiRenderer;
 import org.nowstart.zunyang.partypanic.world.GameProgress;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 public final class HubScreen extends ScreenAdapter {
     private static final float WINDOW_WIDTH = 1600f;
     private static final float WINDOW_HEIGHT = 900f;
-    private static final float STAGE_X = 36f;
-    private static final float STAGE_Y = 116f;
-    private static final float STAGE_WIDTH = 1528f;
-    private static final float STAGE_HEIGHT = 744f;
-    private static final float MOVE_SPEED = 320f;
-    private static final float INTERACTION_RADIUS = 118f;
+    private static final float MAP_Y = 164f;
+    private static final float MOVE_REPEAT_SECONDS = 0.12f;
+    private static final float PLAYER_LERP_SPEED = 14f;
+    private static final float DIALOGUE_LERP_SPEED = 10f;
 
-    private static final Color TEXT_PRIMARY = new Color(0.97f, 0.93f, 0.85f, 1f);
-    private static final Color TEXT_MUTED = new Color(0.90f, 0.84f, 0.80f, 1f);
-    private static final Color TEXT_ACCENT = new Color(1.00f, 0.88f, 0.65f, 1f);
-    private static final Color TEXT_MINT = new Color(0.73f, 0.93f, 0.87f, 1f);
-    private static final Color PANEL_COLOR = new Color(0.10f, 0.07f, 0.10f, 0.74f);
-    private static final Color PANEL_STRONG = new Color(0.14f, 0.09f, 0.13f, 0.84f);
-    private static final Color STAGE_FRAME = new Color(0.18f, 0.10f, 0.14f, 0.45f);
-    private static final Color OVERLAY_COLOR = new Color(0.05f, 0.03f, 0.04f, 0.48f);
-    private static final Color HIGHLIGHT_COLOR = new Color(0.96f, 0.61f, 0.71f, 0.92f);
-    private static final Color BORDER_COLOR = new Color(0.97f, 0.86f, 0.78f, 0.90f);
+    private static final Color TEXT_LIGHT = new Color(0.96f, 0.92f, 0.87f, 1f);
+    private static final Color TEXT_MUTED = new Color(0.80f, 0.75f, 0.72f, 1f);
+    private static final Color TEXT_ACCENT = new Color(0.96f, 0.43f, 0.61f, 1f);
+    private static final Color TEXT_MINT = new Color(0.57f, 0.84f, 0.76f, 1f);
+    private static final Color OUTER_BACKGROUND = new Color(0.10f, 0.08f, 0.10f, 1f);
+    private static final Color FRAME_COLOR = new Color(0.25f, 0.15f, 0.18f, 1f);
+    private static final Color FLOOR_LIGHT = new Color(0.93f, 0.86f, 0.78f, 1f);
+    private static final Color FLOOR_DARK = new Color(0.90f, 0.82f, 0.74f, 1f);
+    private static final Color WALL_COLOR = new Color(0.49f, 0.35f, 0.34f, 1f);
+    private static final Color WALL_TRIM = new Color(0.64f, 0.47f, 0.45f, 1f);
+    private static final Color RUG_LIGHT = new Color(0.95f, 0.73f, 0.82f, 1f);
+    private static final Color RUG_DARK = new Color(0.88f, 0.59f, 0.72f, 1f);
+    private static final Color TILE_OUTLINE = new Color(0.79f, 0.69f, 0.62f, 0.42f);
+    private static final Color WINDOW_BACKGROUND = new Color(0.15f, 0.11f, 0.13f, 0.96f);
+    private static final Color WINDOW_EDGE = new Color(0.97f, 0.88f, 0.77f, 0.92f);
 
     private final PartyPanicGame game;
     private final GameProgress progress;
     private final SpriteBatch batch = new SpriteBatch();
     private final BitmapFont font;
     private final Texture pixelTexture;
-    private final Texture roomTexture;
-    private final Texture hostTexture;
-    private final Map<String, Texture> spotTextures = new LinkedHashMap<>();
-    private final List<HubSpot> spots;
+    private final Texture portraitTexture;
+    private final PixelUiRenderer ui;
+    private final DialogueWindowRenderer dialogueWindow;
+    private final HubMapModel mapModel;
+    private final String initialNotice;
+    private final float mapX;
 
-    private float playerX;
-    private float playerY;
-    private String notice;
+    private float moveCooldown;
+    private float playerDrawX;
+    private float playerDrawY;
+    private float dialogueWindowProgress;
+    private float sceneTime;
+    private DialogueState dialogueState;
 
     public HubScreen(PartyPanicGame game, GameProgress progress, String notice) {
         this.game = game;
         this.progress = progress;
-        this.notice = notice;
-        this.spots = List.of(
-                new HubSpot(GameProgress.BROADCAST_DESK, "방송 책상", "방송 첫 화면과 리듬을 맞춥니다.", "방송 책상은 처음부터 사용할 수 있습니다.", 132f, 512f, 176f, 118f),
-                new HubSpot(GameProgress.STORAGE_ROOM, "장식 창고", "케이크와 포토존에 쓸 소품을 챙깁니다.", "먼저 방송 책상을 정리해야 장식 창고 문이 열립니다.", 404f, 624f, 162f, 98f),
-                new HubSpot(GameProgress.CAKE_TABLE, "케이크 테이블", "오늘 방송의 중심 장면을 완성합니다.", "장식 창고를 정리해야 케이크 테이블이 열립니다.", 650f, 416f, 180f, 118f),
-                new HubSpot(GameProgress.PHOTO_TIME, "포토존", "오늘 방송에 남길 장면을 찍습니다.", "케이크 테이블을 마쳐야 포토존이 열립니다.", 1008f, 396f, 184f, 118f),
-                new HubSpot(GameProgress.BACKSTAGE, "백스테이지 복도", "기억 조각을 확인하는 구간입니다.", "포토존을 마쳐야 복도 문이 열립니다.", 1284f, 622f, 164f, 98f),
-                new HubSpot(GameProgress.FAN_LETTER, "팬레터 우편함", "예전 편지를 다시 읽고 마지막 문을 엽니다.", "백스테이지 복도에서 기억 조각을 확인해야 우편함이 열립니다.", 280f, 200f, 162f, 98f),
-                new HubSpot(GameProgress.FINALE_STAGE, "생일 방송 무대", "오늘 준비를 한 화면에 모아 보는 피날레입니다.", "팬레터를 확인해야 생일 방송 무대 문이 열립니다.", 1274f, 176f, 188f, 122f)
-        );
+        this.initialNotice = notice;
+        this.mapModel = new HubMapModel(game);
+        this.mapX = (WINDOW_WIDTH - mapModel.mapWidth()) * 0.5f;
         this.font = ScreenSupport.createFont(buildFontCharacters());
         this.pixelTexture = ScreenSupport.createPixelTexture();
-        this.roomTexture = ScreenSupport.loadTexture("images/backgrounds/desk-party-stage.png");
-        this.hostTexture = ScreenSupport.loadTexture("images/characters/zunyang-birthday-host.png");
+        this.portraitTexture = ScreenSupport.loadTexture("assets/images/characters/zunyang-birthday-host.png");
+        this.ui = new PixelUiRenderer(batch, font, pixelTexture);
+        this.dialogueWindow = new DialogueWindowRenderer(ui);
+        this.playerDrawX = tileToScreenX(mapModel.playerTileX());
+        this.playerDrawY = tileToScreenY(mapModel.playerTileY());
 
-        spotTextures.put(GameProgress.BROADCAST_DESK, ScreenSupport.loadTexture("images/backgrounds/desk-party-stage.png"));
-        spotTextures.put(GameProgress.STORAGE_ROOM, ScreenSupport.loadTexture("images/backgrounds/cake-rush-stage.png"));
-        spotTextures.put(GameProgress.CAKE_TABLE, ScreenSupport.loadTexture("images/events/cake-balance-card.png"));
-        spotTextures.put(GameProgress.PHOTO_TIME, ScreenSupport.loadTexture("images/events/photo-time-card.png"));
-        spotTextures.put(GameProgress.BACKSTAGE, ScreenSupport.loadTexture("images/backgrounds/mint-cats-stage.png"));
-        spotTextures.put(GameProgress.FAN_LETTER, ScreenSupport.loadTexture("images/choices/fan-letter-card.png"));
-        spotTextures.put(GameProgress.FINALE_STAGE, ScreenSupport.loadTexture("images/backgrounds/finale-stage.png"));
-
-        HubSpot suggestedSpot = findSuggestedSpot();
-        this.playerX = clampPlayerX(STAGE_X + suggestedSpot.centerX());
-        this.playerY = clampPlayerY(STAGE_Y + suggestedSpot.centerY() - 92f);
+        List<String> introPages = resolveInitialNoticePages();
+        if (!introPages.isEmpty()) {
+            openDialogue("치즈냥", introPages, null);
+        }
     }
 
     @Override
     public void render(float delta) {
+        sceneTime += delta;
         handleInput(delta);
+        updateAnimations(delta);
         if (game.getScreen() != this) {
             return;
         }
 
-        ScreenUtils.clear(0.06f, 0.04f, 0.05f, 1f);
+        ScreenUtils.clear(OUTER_BACKGROUND);
 
         batch.begin();
         drawBackdrop();
-        drawFrames();
-        drawHubMap();
-        drawStatusPanel();
+        drawMapFrame();
+        drawMapTiles();
+        drawMapEvents();
+        drawPlayer();
+        drawLocationPlate();
+        if (game.getConfig().showsOperationalUi()) {
+            drawDebugPlate();
+        } else {
+            drawFocusPlate();
+        }
+        if (dialogueState != null) {
+            dialogueWindow.draw(
+                    portraitTexture,
+                    sceneTime,
+                    dialogueWindowProgress,
+                    dialogueState.speaker,
+                    dialogueState.pages.get(dialogueState.pageIndex),
+                    TEXT_LIGHT,
+                    game.getConfig().showsOperationalUi() ? (dialogueState.pageIndex + 1) + " / " + dialogueState.pages.size() : null,
+                    TEXT_MUTED
+            );
+        }
         batch.end();
     }
 
     private void handleInput(float delta) {
-        Vector2 movement = new Vector2();
-
-        if (Gdx.input.isKeyPressed(Input.Keys.LEFT) || Gdx.input.isKeyPressed(Input.Keys.A)) {
-            movement.x -= 1f;
-        }
-        if (Gdx.input.isKeyPressed(Input.Keys.RIGHT) || Gdx.input.isKeyPressed(Input.Keys.D)) {
-            movement.x += 1f;
-        }
-        if (Gdx.input.isKeyPressed(Input.Keys.UP) || Gdx.input.isKeyPressed(Input.Keys.W)) {
-            movement.y += 1f;
-        }
-        if (Gdx.input.isKeyPressed(Input.Keys.DOWN) || Gdx.input.isKeyPressed(Input.Keys.S)) {
-            movement.y -= 1f;
+        if (dialogueState != null) {
+            if (isConfirmPressed()) {
+                advanceDialogue();
+            }
+            return;
         }
 
-        if (!movement.isZero()) {
-            movement.nor().scl(MOVE_SPEED * delta);
-            playerX = clampPlayerX(playerX + movement.x);
-            playerY = clampPlayerY(playerY + movement.y);
-        }
+        moveCooldown = Math.max(0f, moveCooldown - delta);
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             game.showTitle();
             return;
         }
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.E)
-                || Gdx.input.isKeyJustPressed(Input.Keys.ENTER)
-                || Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
-            HubSpot nearbySpot = findNearbySpot();
-            if (nearbySpot == null) {
-                notice = "상호작용할 오브젝트 가까이로 이동하세요.";
-                return;
-            }
-            activateSpot(nearbySpot);
-        }
-    }
-
-    private void activateSpot(HubSpot spot) {
-        if (!progress.isUnlocked(spot.id())) {
-            notice = spot.lockedNotice();
+        if (isConfirmPressed()) {
+            interactFacingTile();
             return;
         }
 
-        switch (spot.id()) {
-            case GameProgress.BROADCAST_DESK -> game.showBroadcastDeskMinigame();
-            case GameProgress.STORAGE_ROOM -> game.showStorageRoomScene();
-            case GameProgress.CAKE_TABLE -> game.showCakeTableMinigame();
-            case GameProgress.PHOTO_TIME -> game.showPhotoTimeMinigame();
-            case GameProgress.BACKSTAGE -> game.showBackstageScene();
-            case GameProgress.FAN_LETTER -> game.showFanLetterScene();
-            case GameProgress.FINALE_STAGE -> game.showFinaleStage();
-            default -> notice = "아직 연결되지 않은 오브젝트입니다.";
+        HubDirection direction = readPressedDirection();
+        if (direction == null) {
+            return;
+        }
+
+        mapModel.setFacing(direction);
+        if (moveCooldown > 0f) {
+            return;
+        }
+
+        mapModel.attemptStep(direction);
+        moveCooldown = MOVE_REPEAT_SECONDS;
+    }
+
+    private void updateAnimations(float delta) {
+        float moveAlpha = Math.min(1f, delta * PLAYER_LERP_SPEED);
+        playerDrawX = MathUtils.lerp(playerDrawX, tileToScreenX(mapModel.playerTileX()), moveAlpha);
+        playerDrawY = MathUtils.lerp(playerDrawY, tileToScreenY(mapModel.playerTileY()), moveAlpha);
+
+        float dialogueTarget = dialogueState == null ? 0f : 1f;
+        float dialogueAlpha = Math.min(1f, delta * DIALOGUE_LERP_SPEED);
+        dialogueWindowProgress = MathUtils.lerp(dialogueWindowProgress, dialogueTarget, dialogueAlpha);
+    }
+
+    private boolean isConfirmPressed() {
+        return Gdx.input.isKeyJustPressed(Input.Keys.ENTER)
+                || Gdx.input.isKeyJustPressed(Input.Keys.SPACE)
+                || Gdx.input.isKeyJustPressed(Input.Keys.E);
+    }
+
+    private HubDirection readPressedDirection() {
+        if (Gdx.input.isKeyPressed(Input.Keys.LEFT) || Gdx.input.isKeyPressed(Input.Keys.A)) {
+            return HubDirection.LEFT;
+        }
+        if (Gdx.input.isKeyPressed(Input.Keys.RIGHT) || Gdx.input.isKeyPressed(Input.Keys.D)) {
+            return HubDirection.RIGHT;
+        }
+        if (Gdx.input.isKeyPressed(Input.Keys.UP) || Gdx.input.isKeyPressed(Input.Keys.W)) {
+            return HubDirection.UP;
+        }
+        if (Gdx.input.isKeyPressed(Input.Keys.DOWN) || Gdx.input.isKeyPressed(Input.Keys.S)) {
+            return HubDirection.DOWN;
+        }
+        return null;
+    }
+
+    private void interactFacingTile() {
+        HubMapEvent facingEvent = mapModel.findFacingEvent();
+        if (facingEvent == null) {
+            return;
+        }
+
+        if (!progress.isUnlocked(facingEvent.id())) {
+            openDialogue("치즈냥", List.of(facingEvent.lockedNotice()), null);
+            return;
+        }
+
+        openDialogue("치즈냥", facingEvent.interactionLines(), facingEvent.action());
+    }
+
+    private void openDialogue(String speaker, List<String> pages, Runnable onFinish) {
+        if (pages == null || pages.isEmpty()) {
+            if (onFinish != null) {
+                onFinish.run();
+            }
+            return;
+        }
+        dialogueWindowProgress = 0f;
+        dialogueState = new DialogueState(speaker, List.copyOf(pages), onFinish);
+    }
+
+    private void advanceDialogue() {
+        if (dialogueState.pageIndex < dialogueState.pages.size() - 1) {
+            dialogueState.pageIndex += 1;
+            return;
+        }
+
+        Runnable onFinish = dialogueState.onFinish;
+        dialogueState = null;
+        if (onFinish != null) {
+            onFinish.run();
         }
     }
 
     private void drawBackdrop() {
-        drawTextureCover(roomTexture, 0f, 0f, WINDOW_WIDTH, WINDOW_HEIGHT);
-        drawPanel(0f, 0f, WINDOW_WIDTH, WINDOW_HEIGHT, OVERLAY_COLOR);
+        ui.panel(0f, 0f, WINDOW_WIDTH, WINDOW_HEIGHT, OUTER_BACKGROUND);
+        ui.panel(0f, MAP_Y - 64f, WINDOW_WIDTH, mapModel.mapHeight() + 128f, new Color(0.17f, 0.12f, 0.13f, 1f));
+        ui.panel(0f, 0f, WINDOW_WIDTH, 124f, new Color(0.09f, 0.07f, 0.08f, 1f));
+        ui.panel(0f, WINDOW_HEIGHT - 120f, WINDOW_WIDTH, 120f, new Color(0.09f, 0.07f, 0.08f, 1f));
     }
 
-    private void drawFrames() {
-        drawPanel(STAGE_X - 8f, STAGE_Y - 8f, STAGE_WIDTH + 16f, STAGE_HEIGHT + 16f, STAGE_FRAME);
-        drawTextureCover(roomTexture, STAGE_X, STAGE_Y, STAGE_WIDTH, STAGE_HEIGHT);
-        drawPanel(STAGE_X, STAGE_Y, STAGE_WIDTH, STAGE_HEIGHT, new Color(0.04f, 0.03f, 0.03f, 0.18f));
-        drawPanelOutline(STAGE_X - 1f, STAGE_Y - 1f, STAGE_WIDTH + 2f, STAGE_HEIGHT + 2f, BORDER_COLOR);
+    private void drawMapFrame() {
+        ui.panel(mapX - 16f, MAP_Y - 16f, mapModel.mapWidth() + 32f, mapModel.mapHeight() + 32f, FRAME_COLOR);
+        ui.panelOutline(mapX - 16f, MAP_Y - 16f, mapModel.mapWidth() + 32f, mapModel.mapHeight() + 32f, WINDOW_EDGE);
+        ui.panel(mapX - 6f, MAP_Y - 6f, mapModel.mapWidth() + 12f, mapModel.mapHeight() + 12f, new Color(0.24f, 0.18f, 0.17f, 0.52f));
     }
 
-    private void drawHubMap() {
-        HubSpot nearbySpot = findNearbySpot();
-        float infoX = STAGE_X + 28f;
-        float infoY = STAGE_Y + STAGE_HEIGHT - 138f;
-        float infoWidth = 560f;
-        float infoHeight = 102f;
+    private void drawMapTiles() {
+        for (int row = 0; row < mapModel.rowCount(); row += 1) {
+            for (int column = 0; column < mapModel.columnCount(); column += 1) {
+                drawTile(column, row, mapModel.tileAt(row, column));
+            }
+        }
+    }
 
-        drawLine("치즈냥 생일 준비방", STAGE_X + 28f, STAGE_Y + STAGE_HEIGHT - 22f, 1.24f, TEXT_ACCENT);
-        drawPanel(infoX, infoY, infoWidth, infoHeight, PANEL_COLOR);
-        drawPanelOutline(infoX, infoY, infoWidth, infoHeight, BORDER_COLOR);
-        drawParagraph(progress.getNextObjective(), infoX + 20f, infoY + 58f, infoWidth - 40f, 0.92f, TEXT_PRIMARY);
-        drawLine(resolvePrompt(nearbySpot), infoX + 20f, infoY + 22f, 0.82f, nearbySpot == null ? TEXT_MUTED : TEXT_MINT);
+    private void drawTile(int column, int row, char tile) {
+        float x = tileToScreenX(column);
+        float y = tileToScreenY(row);
+        boolean even = (column + row) % 2 == 0;
 
-        for (HubSpot spot : spots) {
-            drawSpot(spot, nearbySpot);
+        switch (tile) {
+            case '#' -> {
+                ui.panel(x, y, HubMapModel.TILE_SIZE, HubMapModel.TILE_SIZE, WALL_COLOR);
+                ui.panel(x, y + HubMapModel.TILE_SIZE - 12f, HubMapModel.TILE_SIZE, 12f, WALL_TRIM);
+                ui.panel(x, y, HubMapModel.TILE_SIZE, 8f, new Color(0.34f, 0.24f, 0.24f, 1f));
+            }
+            case '=' -> ui.panel(x, y, HubMapModel.TILE_SIZE, HubMapModel.TILE_SIZE, even ? RUG_LIGHT : RUG_DARK);
+            default -> ui.panel(x, y, HubMapModel.TILE_SIZE, HubMapModel.TILE_SIZE, even ? FLOOR_LIGHT : FLOOR_DARK);
         }
 
-        drawPlayer();
+        ui.panelOutline(x, y, HubMapModel.TILE_SIZE, HubMapModel.TILE_SIZE, TILE_OUTLINE);
     }
 
-    private void drawSpot(HubSpot spot, HubSpot nearbySpot) {
-        Texture texture = spotTextures.get(spot.id());
-        boolean completed = progress.isCompleted(spot.id());
-        boolean unlocked = progress.isUnlocked(spot.id());
-        boolean nearby = nearbySpot != null && nearbySpot.id().equals(spot.id());
-        Color border = completed ? TEXT_MINT : nearby ? HIGHLIGHT_COLOR : BORDER_COLOR;
-        float alpha = unlocked ? 1f : 0.45f;
+    private void drawMapEvents() {
+        HubMapEvent suggestedEvent = mapModel.findSuggestedEvent(progress);
+        HubMapEvent facingEvent = mapModel.findFacingEvent();
 
-        batch.setColor(1f, 1f, 1f, alpha);
-        drawTextureCover(texture, STAGE_X + spot.x(), STAGE_Y + spot.y(), spot.width(), spot.height());
-        batch.setColor(Color.WHITE);
+        for (HubMapEvent event : mapModel.events()) {
+            float x = tileToScreenX(event.tileX());
+            float y = tileToScreenY(event.tileY());
+            boolean unlocked = progress.isUnlocked(event.id());
+            boolean completed = progress.isCompleted(event.id());
+            boolean suggested = suggestedEvent != null && suggestedEvent.id().equals(event.id());
+            boolean facing = facingEvent != null && facingEvent.id().equals(event.id());
 
-        drawPanel(STAGE_X + spot.x(), STAGE_Y + spot.y(), spot.width(), spot.height(), new Color(0.05f, 0.03f, 0.04f, unlocked ? 0.16f : 0.46f));
-        drawPanelOutline(STAGE_X + spot.x(), STAGE_Y + spot.y(), spot.width(), spot.height(), border);
-        drawLine(spot.title(), STAGE_X + spot.x(), STAGE_Y + spot.y() - 10f, 0.82f, unlocked ? TEXT_PRIMARY : TEXT_MUTED);
-        if (showsOperationalUi()) {
-            drawLine(resolveSpotStatus(spot, unlocked, completed), STAGE_X + spot.x(), STAGE_Y + spot.y() - 30f, 0.74f, completed ? TEXT_MINT : unlocked ? TEXT_ACCENT : TEXT_MUTED);
+            ui.panel(x + 10f, y + 4f, HubMapModel.TILE_SIZE - 20f, 8f, new Color(0f, 0f, 0f, 0.18f));
+            drawEventObject(event.visual(), x, y, unlocked, completed);
+
+            Color outline = completed ? TEXT_MINT : suggested ? TEXT_ACCENT : unlocked ? WINDOW_EDGE : TEXT_MUTED;
+            if (facing) {
+                outline = TEXT_ACCENT;
+            }
+            ui.panelOutline(x + 4f, y + 4f, HubMapModel.TILE_SIZE - 8f, HubMapModel.TILE_SIZE - 8f, outline);
+
+            if (game.getConfig().showsOperationalUi()) {
+                ui.panel(x - 2f, y + HubMapModel.TILE_SIZE + 4f, 62f, 18f, WINDOW_BACKGROUND);
+                ui.line(event.title(), x + 4f, y + HubMapModel.TILE_SIZE + 17f, 0.46f, unlocked ? TEXT_LIGHT : TEXT_MUTED);
+            }
         }
+    }
+
+    private void drawEventObject(HubEventVisual visual, float x, float y, boolean unlocked, boolean completed) {
+        Color base = resolveEventBaseColor(visual, unlocked);
+        Color accent = resolveEventAccentColor(visual, unlocked, completed);
+
+        switch (visual) {
+            case DESK -> {
+                ui.panel(x + 8f, y + 8f, 32f, 14f, base);
+                ui.panel(x + 12f, y + 22f, 24f, 12f, accent);
+                ui.panel(x + 20f, y + 34f, 8f, 8f, new Color(0.22f, 0.17f, 0.18f, 1f));
+            }
+            case DOOR -> {
+                ui.panel(x + 12f, y + 6f, 24f, 34f, base);
+                ui.panel(x + 16f, y + 10f, 16f, 24f, accent);
+                ui.panel(x + 30f, y + 22f, 3f, 3f, TEXT_LIGHT);
+            }
+            case CAKE -> {
+                ui.panel(x + 10f, y + 8f, 28f, 10f, new Color(0.78f, 0.64f, 0.48f, 1f));
+                ui.panel(x + 12f, y + 18f, 24f, 16f, base);
+                ui.panel(x + 20f, y + 34f, 2f, 8f, accent);
+                ui.panel(x + 26f, y + 34f, 2f, 8f, accent);
+            }
+            case PHOTO -> {
+                ui.panel(x + 21f, y + 8f, 6f, 30f, base);
+                ui.panel(x + 13f, y + 18f, 22f, 14f, accent);
+                ui.panel(x + 12f, y + 6f, 8f, 4f, base);
+                ui.panel(x + 28f, y + 6f, 8f, 4f, base);
+            }
+            case MAILBOX -> {
+                ui.panel(x + 14f, y + 10f, 20f, 22f, base);
+                ui.panel(x + 12f, y + 30f, 24f, 8f, accent);
+                ui.panel(x + 18f, y + 20f, 12f, 4f, TEXT_LIGHT);
+            }
+            case STAGE -> {
+                ui.panel(x + 8f, y + 8f, 32f, 8f, accent);
+                ui.panel(x + 12f, y + 16f, 24f, 18f, base);
+                ui.panel(x + 8f, y + 34f, 32f, 6f, accent);
+            }
+        }
+    }
+
+    private Color resolveEventBaseColor(HubEventVisual visual, boolean unlocked) {
+        if (!unlocked) {
+            return new Color(0.42f, 0.38f, 0.38f, 1f);
+        }
+        return switch (visual) {
+            case DESK -> new Color(0.69f, 0.53f, 0.41f, 1f);
+            case DOOR -> new Color(0.57f, 0.39f, 0.33f, 1f);
+            case CAKE -> new Color(0.96f, 0.76f, 0.84f, 1f);
+            case PHOTO -> new Color(0.52f, 0.62f, 0.68f, 1f);
+            case MAILBOX -> new Color(0.78f, 0.47f, 0.59f, 1f);
+            case STAGE -> new Color(0.53f, 0.35f, 0.52f, 1f);
+        };
+    }
+
+    private Color resolveEventAccentColor(HubEventVisual visual, boolean unlocked, boolean completed) {
+        if (completed) {
+            return TEXT_MINT;
+        }
+        if (!unlocked) {
+            return new Color(0.55f, 0.50f, 0.50f, 1f);
+        }
+        return switch (visual) {
+            case DESK -> new Color(0.42f, 0.70f, 0.74f, 1f);
+            case DOOR -> new Color(0.84f, 0.68f, 0.45f, 1f);
+            case CAKE -> new Color(0.98f, 0.88f, 0.55f, 1f);
+            case PHOTO -> new Color(0.81f, 0.90f, 0.95f, 1f);
+            case MAILBOX -> new Color(0.96f, 0.88f, 0.68f, 1f);
+            case STAGE -> new Color(0.96f, 0.70f, 0.77f, 1f);
+        };
     }
 
     private void drawPlayer() {
-        float drawHeight = 108f;
-        float drawWidth = drawHeight * (hostTexture.getWidth() / (float) hostTexture.getHeight());
-        float drawX = playerX - (drawWidth * 0.5f);
-        float drawY = playerY - 10f;
+        float x = playerDrawX;
+        float y = playerDrawY;
 
-        drawPanel(playerX - 28f, playerY - 4f, 56f, 12f, new Color(0f, 0f, 0f, 0.32f));
-        drawPanel(drawX - 10f, drawY - 8f, drawWidth + 20f, drawHeight + 16f, new Color(0.14f, 0.08f, 0.12f, 0.28f));
-        drawTextureFit(hostTexture, drawX, drawY, drawWidth, drawHeight);
+        ui.panel(x + 10f, y + 4f, HubMapModel.TILE_SIZE - 20f, 8f, new Color(0f, 0f, 0f, 0.20f));
+        ui.panel(x + 18f, y + 10f, 12f, 12f, new Color(0.96f, 0.82f, 0.70f, 1f));
+        ui.panel(x + 14f, y + 20f, 20f, 14f, new Color(0.97f, 0.90f, 0.55f, 1f));
+        ui.panel(x + 12f, y + 30f, 24f, 10f, new Color(0.88f, 0.41f, 0.57f, 1f));
+        ui.panel(x + 10f, y + 36f, 8f, 6f, new Color(0.97f, 0.90f, 0.55f, 1f));
+        ui.panel(x + 30f, y + 36f, 8f, 6f, new Color(0.97f, 0.90f, 0.55f, 1f));
+        drawFacingAccent(x, y);
+        ui.panelOutline(x + 10f, y + 10f, 28f, 30f, TEXT_LIGHT);
     }
 
-    private void drawStatusPanel() {
-        HubSpot nearbySpot = findNearbySpot();
+    private void drawFacingAccent(float x, float y) {
+        switch (mapModel.facing()) {
+            case UP -> ui.panel(x + 20f, y + 24f, 8f, 4f, TEXT_ACCENT);
+            case DOWN -> ui.panel(x + 20f, y + 12f, 8f, 4f, TEXT_ACCENT);
+            case LEFT -> ui.panel(x + 14f, y + 18f, 4f, 8f, TEXT_ACCENT);
+            case RIGHT -> ui.panel(x + 30f, y + 18f, 4f, 8f, TEXT_ACCENT);
+        }
+    }
 
-        if (!showsOperationalUi()) {
-            drawLiveStatusPanel(nearbySpot);
+    private void drawLocationPlate() {
+        ui.panel(54f, WINDOW_HEIGHT - 82f, 278f, 54f, WINDOW_BACKGROUND);
+        ui.panelOutline(54f, WINDOW_HEIGHT - 82f, 278f, 54f, WINDOW_EDGE);
+        ui.line("생일 방송 준비방", 76f, WINDOW_HEIGHT - 48f, 0.94f, TEXT_LIGHT);
+        ui.line("전통 2D 쯔꾸르형 허브", 76f, WINDOW_HEIGHT - 68f, 0.62f, TEXT_MUTED);
+    }
+
+    private void drawFocusPlate() {
+        if (dialogueState != null) {
             return;
         }
 
-        float progressX = STAGE_X + STAGE_WIDTH - 274f;
-        float progressY = STAGE_Y + STAGE_HEIGHT - 118f;
-        float progressWidth = 246f;
-        float progressHeight = 90f;
-        float noticeX = STAGE_X + 28f;
-        float noticeY = STAGE_Y + 26f;
-        float noticeWidth = 458f;
-        float noticeHeight = 96f;
-        float promptX = STAGE_X + STAGE_WIDTH - 422f;
-        float promptY = STAGE_Y + 26f;
-        float promptWidth = 394f;
-        float promptHeight = 112f;
-
-        drawPanel(progressX, progressY, progressWidth, progressHeight, PANEL_STRONG);
-        drawPanelOutline(progressX, progressY, progressWidth, progressHeight, BORDER_COLOR);
-        drawLine("루트 " + progress.getCompletedCount() + " / " + progress.getTotalActivityCount(), progressX + 18f, progressY + 62f, 0.94f, TEXT_PRIMARY);
-        drawLine(progress.getEndingTitle(), progressX + 18f, progressY + 30f, 1.02f, TEXT_MINT);
-
-        drawPanel(noticeX, noticeY, noticeWidth, noticeHeight, PANEL_COLOR);
-        drawPanelOutline(noticeX, noticeY, noticeWidth, noticeHeight, BORDER_COLOR);
-        drawParagraph(resolveNotice(), noticeX + 18f, noticeY + 58f, noticeWidth - 36f, 0.84f, TEXT_PRIMARY);
-        drawLine("WASD 이동  E 상호작용  ESC 타이틀", noticeX + 18f, noticeY + 22f, 0.76f, TEXT_MUTED);
-
-        if (nearbySpot == null) {
+        HubMapEvent facingEvent = mapModel.findFacingEvent();
+        if (facingEvent == null) {
             return;
         }
 
-        drawPanel(promptX, promptY, promptWidth, promptHeight, PANEL_STRONG);
-        drawPanelOutline(promptX, promptY, promptWidth, promptHeight, nearbySpot.id().equals(findSuggestedSpot().id()) ? HIGHLIGHT_COLOR : BORDER_COLOR);
-        drawLine(nearbySpot.title(), promptX + 18f, promptY + 82f, 0.98f, TEXT_ACCENT);
-        drawParagraph(nearbySpot.description(), promptX + 18f, promptY + 50f, promptWidth - 36f, 0.80f, TEXT_PRIMARY);
-        drawLine(resolvePrompt(nearbySpot), promptX + 18f, promptY + 20f, 0.76f, TEXT_MUTED);
+        boolean unlocked = progress.isUnlocked(facingEvent.id());
+        float x = WINDOW_WIDTH - 302f;
+        float y = WINDOW_HEIGHT - 82f;
+        ui.panel(x, y, 248f, 48f, WINDOW_BACKGROUND);
+        ui.panelOutline(x, y, 248f, 48f, unlocked ? TEXT_ACCENT : WINDOW_EDGE);
+        ui.line(facingEvent.title(), x + 18f, y + 30f, 0.86f, TEXT_LIGHT);
+        ui.line(unlocked ? "정면 조사 가능" : "아직 잠겨 있음", x + 18f, y + 13f, 0.56f, unlocked ? TEXT_ACCENT : TEXT_MUTED);
     }
 
-    private void drawLiveStatusPanel(HubSpot nearbySpot) {
-        float chipX = STAGE_X + STAGE_WIDTH - 220f;
-        float chipY = STAGE_Y + STAGE_HEIGHT - 84f;
-        float chipWidth = 192f;
-        float chipHeight = 56f;
+    private void drawDebugPlate() {
+        float x = WINDOW_WIDTH - 456f;
+        float y = WINDOW_HEIGHT - 186f;
+        ui.panel(x, y, 402f, 144f, WINDOW_BACKGROUND);
+        ui.panelOutline(x, y, 402f, 144f, WINDOW_EDGE);
+        ui.line("test mode", x + 18f, y + 118f, 0.82f, TEXT_ACCENT);
+        ui.line("좌표 " + mapModel.playerTileX() + ", " + mapModel.playerTileY(), x + 18f, y + 88f, 0.78f, TEXT_LIGHT);
+        ui.line("바라보는 방향 " + mapModel.facing().label(), x + 18f, y + 62f, 0.78f, TEXT_LIGHT);
+        ui.paragraph(progress.getNextObjective(), x + 18f, y + 34f, 366f, 0.62f, TEXT_MUTED);
 
-        drawPanel(chipX, chipY, chipWidth, chipHeight, PANEL_STRONG);
-        drawPanelOutline(chipX, chipY, chipWidth, chipHeight, BORDER_COLOR);
-        drawLine(progress.getCompletedCount() + " / " + progress.getTotalActivityCount(), chipX + 18f, chipY + 36f, 0.90f, TEXT_PRIMARY);
-        drawLine(progress.getEndingTitle(), chipX + 18f, chipY + 16f, 0.78f, TEXT_MINT);
-
-        if (nearbySpot == null) {
-            return;
-        }
-
-        float promptWidth = 420f;
-        float promptHeight = 74f;
-        float promptX = STAGE_X + ((STAGE_WIDTH - promptWidth) * 0.5f);
-        float promptY = STAGE_Y + 24f;
-        Color outlineColor = progress.isUnlocked(nearbySpot.id()) ? HIGHLIGHT_COLOR : BORDER_COLOR;
-
-        drawPanel(promptX, promptY, promptWidth, promptHeight, PANEL_STRONG);
-        drawPanelOutline(promptX, promptY, promptWidth, promptHeight, outlineColor);
-        drawLine(nearbySpot.title(), promptX + 18f, promptY + 48f, 0.92f, TEXT_ACCENT);
-        drawLine(resolvePrompt(nearbySpot), promptX + 18f, promptY + 22f, 0.78f, TEXT_PRIMARY);
-    }
-
-    private HubSpot findSuggestedSpot() {
-        for (HubSpot spot : spots) {
-            if (!progress.isCompleted(spot.id()) && progress.isUnlocked(spot.id())) {
-                return spot;
-            }
-        }
-        return spots.get(0);
-    }
-
-    private HubSpot findNearbySpot() {
-        HubSpot bestSpot = null;
-        float bestDistance = Float.MAX_VALUE;
-
-        for (HubSpot spot : spots) {
-            float distance = Vector2.dst(playerX, playerY, STAGE_X + spot.centerX(), STAGE_Y + spot.centerY());
-            if (distance <= INTERACTION_RADIUS && distance < bestDistance) {
-                bestDistance = distance;
-                bestSpot = spot;
-            }
-        }
-
-        return bestSpot;
-    }
-
-    private String resolveSpotStatus(HubSpot spot, boolean unlocked, boolean completed) {
-        if (completed) {
-            return "완료";
-        }
-        if (!unlocked) {
-            return "잠김";
-        }
-        if (spot.id().equals(findSuggestedSpot().id())) {
-            return "다음 목표";
-        }
-        return "진입 가능";
-    }
-
-    private String resolvePrompt(HubSpot nearbySpot) {
-        if (nearbySpot == null) {
-            return "오브젝트 가까이에서 E 또는 ENTER를 누르면 챕터가 시작됩니다.";
-        }
-        if (!progress.isUnlocked(nearbySpot.id())) {
-            return nearbySpot.lockedNotice();
-        }
-        return nearbySpot.title() + " 상호작용 가능";
-    }
-
-    private String resolveNotice() {
-        if (notice != null && !notice.isBlank()) {
-            return notice;
-        }
-        return "샘플 허브입니다. 메인 루트를 따라가며 쯔꾸르풍 진행 구조를 한 바퀴 확인할 수 있습니다.";
-    }
-
-    private float clampPlayerX(float candidate) {
-        return Math.max(STAGE_X + 48f, Math.min(STAGE_X + STAGE_WIDTH - 48f, candidate));
-    }
-
-    private float clampPlayerY(float candidate) {
-        return Math.max(STAGE_Y + 38f, Math.min(STAGE_Y + STAGE_HEIGHT - 38f, candidate));
-    }
-
-    private boolean showsOperationalUi() {
-        return game.getConfig().showsOperationalUi();
-    }
-
-    private void drawPanel(float x, float y, float width, float height, Color color) {
-        batch.setColor(color);
-        batch.draw(pixelTexture, x, y, width, height);
-        batch.setColor(Color.WHITE);
-    }
-
-    private void drawPanelOutline(float x, float y, float width, float height, Color color) {
-        drawPanel(x, y, width, 2f, color);
-        drawPanel(x, y + height - 2f, width, 2f, color);
-        drawPanel(x, y, 2f, height, color);
-        drawPanel(x + width - 2f, y, 2f, height, color);
-    }
-
-    private void drawTextureCover(Texture texture, float x, float y, float width, float height) {
-        float targetAspect = width / height;
-        float textureAspect = texture.getWidth() / (float) texture.getHeight();
-        int srcX = 0;
-        int srcY = 0;
-        int srcWidth = texture.getWidth();
-        int srcHeight = texture.getHeight();
-
-        if (textureAspect > targetAspect) {
-            srcWidth = Math.round(texture.getHeight() * targetAspect);
-            srcX = (texture.getWidth() - srcWidth) / 2;
-        } else if (textureAspect < targetAspect) {
-            srcHeight = Math.round(texture.getWidth() / targetAspect);
-            srcY = (texture.getHeight() - srcHeight) / 2;
-        }
-
-        batch.draw(texture, x, y, width, height, srcX, srcY, srcWidth, srcHeight, false, false);
-    }
-
-    private void drawTextureFit(Texture texture, float x, float y, float width, float height) {
-        float scale = Math.min(width / texture.getWidth(), height / texture.getHeight());
-        float drawWidth = texture.getWidth() * scale;
-        float drawHeight = texture.getHeight() * scale;
-        float drawX = x + ((width - drawWidth) * 0.5f);
-        float drawY = y + ((height - drawHeight) * 0.5f);
-        batch.draw(texture, drawX, drawY, drawWidth, drawHeight);
-    }
-
-    private void drawParagraph(String text, float x, float y, float width, float scale, Color color) {
-        String[] words = text.split(" ");
-        StringBuilder lineBuilder = new StringBuilder();
-        float cursorY = y;
-
-        for (String word : words) {
-            String candidate = lineBuilder.length() == 0 ? word : lineBuilder + " " + word;
-            if (estimateWidth(candidate, scale) > width && lineBuilder.length() > 0) {
-                drawLine(lineBuilder.toString(), x, cursorY, scale, color);
-                lineBuilder.setLength(0);
-                lineBuilder.append(word);
-                cursorY -= 24f * scale;
-                continue;
-            }
-            lineBuilder.setLength(0);
-            lineBuilder.append(candidate);
-        }
-
-        if (!lineBuilder.isEmpty()) {
-            drawLine(lineBuilder.toString(), x, cursorY, scale, color);
+        HubMapEvent facingEvent = mapModel.findFacingEvent();
+        if (facingEvent != null) {
+            ui.line("앞 타일 " + facingEvent.title(), x + 210f, y + 118f, 0.72f, TEXT_MINT);
         }
     }
 
-    private float estimateWidth(String text, float scale) {
-        return text.length() * 11.4f * scale;
+    private float tileToScreenX(int tileX) {
+        return mapX + (tileX * HubMapModel.TILE_SIZE);
     }
 
-    private void drawLine(String text, float x, float y, float scale, Color color) {
-        font.getData().setScale(scale);
-        font.setColor(color);
-        font.draw(batch, text, x, y);
-        font.setColor(TEXT_PRIMARY);
-        font.getData().setScale(1f);
+    private float tileToScreenY(int tileY) {
+        return MAP_Y + ((mapModel.rowCount() - tileY - 1) * HubMapModel.TILE_SIZE);
+    }
+
+    private List<String> resolveInitialNoticePages() {
+        if (initialNotice == null || initialNotice.isBlank()) {
+            return List.of();
+        }
+
+        List<String> pages = new ArrayList<>();
+        pages.add(initialNotice);
+        if (progress.getCompletedCount() == 0) {
+            pages.add("방향키로 한 칸씩 움직이고, 조사하고 싶은 오브젝트 정면에서 ENTER나 SPACE를 누르자.");
+        }
+        return pages;
     }
 
     private String buildFontCharacters() {
         Set<Character> characters = new LinkedHashSet<>();
         appendCharacters(characters, FreeTypeFontGenerator.DEFAULT_CHARS);
 
-        List<String> fontTexts = new ArrayList<>();
-        fontTexts.add(progress.getNextObjective());
-        fontTexts.add(progress.getEndingTitle());
-        fontTexts.add(resolveNotice());
-        fontTexts.addAll(List.of(
-                "치즈냥 생일 준비방",
-                "허브 진행도",
-                "메인 루트",
-                "예상 엔딩",
-                "현재 위치",
-                "준비방 중앙",
-                "다음 목표 쪽으로 걸어가 E 또는 ENTER로 상호작용하세요.",
-                "루트",
-                "최고 점수",
-                "합계",
-                "최근 알림",
-                "WASD 이동  E 상호작용  ESC 타이틀",
-                "상호작용할 오브젝트 가까이로 이동하세요.",
-                "샘플 허브입니다. 메인 루트를 따라가며 쯔꾸르풍 진행 구조를 한 바퀴 확인할 수 있습니다.",
-                "오브젝트 가까이에서 E 또는 ENTER를 누르면 챕터가 시작됩니다.",
-                "완료",
-                "잠김",
-                "다음 목표",
-                "진입 가능",
-                "상호작용 가능"
+        List<String> texts = new ArrayList<>();
+        texts.add(progress.getNextObjective());
+        texts.add(progress.getEndingTitle());
+        texts.add(progress.getEndingLine());
+        texts.addAll(resolveInitialNoticePages());
+        texts.addAll(List.of(
+                "치즈냥",
+                "생일 방송 준비방",
+                "전통 2D 쯔꾸르형 허브",
+                "정면 조사 가능",
+                "아직 잠겨 있음",
+                "test mode",
+                "좌표",
+                "바라보는 방향",
+                "앞 타일",
+                "방향키로 한 칸씩 움직이고, 조사하고 싶은 오브젝트 정면에서 ENTER나 SPACE를 누르자."
         ));
 
-        for (HubSpot spot : spots) {
-            fontTexts.add(spot.title());
-            fontTexts.add(spot.description());
-            fontTexts.add(spot.lockedNotice());
+        for (HubMapEvent event : mapModel.events()) {
+            texts.add(event.title());
+            texts.add(event.lockedNotice());
+            texts.addAll(event.interactionLines());
         }
 
-        for (String text : fontTexts) {
+        for (String text : texts) {
             appendCharacters(characters, text);
         }
 
@@ -493,29 +503,20 @@ public final class HubScreen extends ScreenAdapter {
         batch.dispose();
         font.dispose();
         pixelTexture.dispose();
-        roomTexture.dispose();
-        hostTexture.dispose();
-        for (Texture texture : spotTextures.values()) {
-            texture.dispose();
-        }
+        portraitTexture.dispose();
     }
 
-    private record HubSpot(
-            String id,
-            String title,
-            String description,
-            String lockedNotice,
-            float x,
-            float y,
-            float width,
-            float height
-    ) {
-        private float centerX() {
-            return x + (width * 0.5f);
-        }
+    private static final class DialogueState {
+        private final String speaker;
+        private final List<String> pages;
+        private final Runnable onFinish;
+        private int pageIndex;
 
-        private float centerY() {
-            return y + (height * 0.5f);
+        private DialogueState(String speaker, List<String> pages, Runnable onFinish) {
+            this.speaker = speaker;
+            this.pages = pages;
+            this.onFinish = onFinish;
+            this.pageIndex = 0;
         }
     }
 }

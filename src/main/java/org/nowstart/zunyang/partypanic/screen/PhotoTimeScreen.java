@@ -60,9 +60,9 @@ public final class PhotoTimeScreen extends ScreenAdapter {
         this.progress = progress;
         this.font = ScreenSupport.createFont(buildFontCharacters());
         this.pixelTexture = ScreenSupport.createPixelTexture();
-        this.backgroundTexture = ScreenSupport.loadTexture("images/backgrounds/mint-cats-stage.png");
-        this.cardTexture = ScreenSupport.loadTexture("images/choices/photo-time-card.png", "images/events/photo-time-card.png");
-        this.hostTexture = ScreenSupport.loadTexture("images/characters/zunyang-birthday-host.png");
+        this.backgroundTexture = ScreenSupport.loadTexture("assets/images/backgrounds/mint-cats-stage.png");
+        this.cardTexture = ScreenSupport.loadTexture("assets/images/choices/photo-time-card.png", "assets/images/events/photo-time-card.png");
+        this.hostTexture = ScreenSupport.loadTexture("assets/images/characters/zunyang-birthday-host.png");
     }
 
     @Override

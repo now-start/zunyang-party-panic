@@ -8,8 +8,10 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.ScreenUtils;
 import org.nowstart.zunyang.partypanic.PartyPanicGame;
+import org.nowstart.zunyang.partypanic.screen.ui.PixelUiRenderer;
 
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -33,17 +35,21 @@ public final class TitleScreen extends ScreenAdapter {
     private final Texture pixelTexture;
     private final Texture backgroundTexture;
     private final Texture hostTexture;
+    private final PixelUiRenderer ui;
+    private float sceneTime;
 
     public TitleScreen(PartyPanicGame game) {
         this.game = game;
         this.font = ScreenSupport.createFont(buildFontCharacters());
         this.pixelTexture = ScreenSupport.createPixelTexture();
-        this.backgroundTexture = ScreenSupport.loadTexture("images/backgrounds/finale-stage.png");
-        this.hostTexture = ScreenSupport.loadTexture("images/characters/zunyang-birthday-host.png");
+        this.backgroundTexture = ScreenSupport.loadTexture("assets/images/backgrounds/finale-stage.png");
+        this.hostTexture = ScreenSupport.loadTexture("assets/images/characters/zunyang-birthday-host.png");
+        this.ui = new PixelUiRenderer(batch, font, pixelTexture);
     }
 
     @Override
     public void render(float delta) {
+        sceneTime += delta;
         handleInput();
         if (game.getScreen() != this) {
             return;
@@ -52,8 +58,8 @@ public final class TitleScreen extends ScreenAdapter {
         ScreenUtils.clear(0.06f, 0.04f, 0.05f, 1f);
 
         batch.begin();
-        drawTextureCover(backgroundTexture, 0f, 0f, WINDOW_WIDTH, WINDOW_HEIGHT);
-        drawPanel(0f, 0f, WINDOW_WIDTH, WINDOW_HEIGHT, OVERLAY_COLOR);
+        ui.textureCover(backgroundTexture, 0f, 0f, WINDOW_WIDTH, WINDOW_HEIGHT);
+        ui.panel(0f, 0f, WINDOW_WIDTH, WINDOW_HEIGHT, OVERLAY_COLOR);
         drawHero();
         drawTitleCard();
         batch.end();
@@ -74,10 +80,10 @@ public final class TitleScreen extends ScreenAdapter {
         float drawHeight = 620f;
         float drawWidth = drawHeight * (hostTexture.getWidth() / (float) hostTexture.getHeight());
         float drawX = 946f;
-        float drawY = 132f;
+        float drawY = 132f + (MathUtils.sin(sceneTime * 1.6f) * 6f);
 
-        drawPanel(drawX - 24f, drawY - 20f, drawWidth + 48f, drawHeight + 40f, new Color(0.14f, 0.08f, 0.12f, 0.38f));
-        drawTextureFit(hostTexture, drawX, drawY, drawWidth, drawHeight);
+        ui.panel(drawX - 24f, drawY - 20f, drawWidth + 48f, drawHeight + 40f, new Color(0.14f, 0.08f, 0.12f, 0.38f));
+        ui.textureFit(hostTexture, drawX, drawY, drawWidth, drawHeight);
     }
 
     private void drawTitleCard() {
@@ -87,16 +93,16 @@ public final class TitleScreen extends ScreenAdapter {
         float cardWidth = 652f;
         float cardHeight = 434f;
 
-        drawPanel(cardX, cardY, cardWidth, cardHeight, PANEL_COLOR);
-        drawPanelOutline(cardX, cardY, cardWidth, cardHeight, BORDER_COLOR);
+        ui.panel(cardX, cardY, cardWidth, cardHeight, PANEL_COLOR);
+        ui.panelOutline(cardX, cardY, cardWidth, cardHeight, BORDER_COLOR);
 
-        drawLine("zunyang-party-panic", cardX + 34f, cardY + cardHeight - 38f, 1.58f, TEXT_ACCENT);
-        drawLine("치즈냥 생일 팬게임", cardX + 34f, cardY + cardHeight - 86f, 1.16f, TEXT_MINT);
-        drawParagraph("치즈냥이 직접 생일 방송 준비방을 돌아다니며 오늘의 방송 톤과 남아 있던 기억 조각을 정리하는 쯔꾸르풍 팬게임입니다.", cardX + 34f, cardY + 278f, cardWidth - 68f, 0.98f, TEXT_PRIMARY);
-        drawParagraph(
+        ui.line("zunyang-party-panic", cardX + 34f, cardY + cardHeight - 38f, 1.58f, TEXT_ACCENT);
+        ui.line("치즈냥 생일 팬게임", cardX + 34f, cardY + cardHeight - 86f, 1.16f, TEXT_MINT);
+        ui.paragraph("치즈냥이 직접 타일 기반 준비방을 걸으며 조사와 대사로 생일 방송 시작 직전의 장면을 정리하는 전통 2D 쯔꾸르 팬게임입니다.", cardX + 34f, cardY + 278f, cardWidth - 68f, 0.98f, TEXT_PRIMARY);
+        ui.paragraph(
                 operationalUi
-                        ? "현재 test 모드: 운영 패널과 검증용 정보가 함께 표시됩니다."
-                        : "현재 live 모드: 실제 플레이 화면 기준으로 최소한의 UI만 표시됩니다.",
+                        ? "현재 test 모드: 타일 좌표와 진행 정보 같은 검증용 정보가 추가 표시됩니다."
+                        : "현재 live 모드: 4방향 이동과 하단 대사창 중심의 실제 플레이 화면으로 표시됩니다.",
                 cardX + 34f,
                 cardY + 214f,
                 cardWidth - 68f,
@@ -108,87 +114,16 @@ public final class TitleScreen extends ScreenAdapter {
         float buttonY = cardY + 92f;
         float buttonWidth = 280f;
         float buttonHeight = 54f;
-        drawPanel(buttonX, buttonY, buttonWidth, buttonHeight, TEXT_ACCENT);
-        drawPanelOutline(buttonX, buttonY, buttonWidth, buttonHeight, BORDER_COLOR);
-        drawLine("ENTER / SPACE  시작", buttonX + 20f, buttonY + 34f, 0.98f, Color.BLACK);
+        float buttonGlow = 0.84f + (0.16f * ((MathUtils.sin(sceneTime * 2.8f) * 0.5f) + 0.5f));
+        ui.panel(buttonX, buttonY, buttonWidth, buttonHeight, withAlpha(TEXT_ACCENT, buttonGlow));
+        ui.panelOutline(buttonX, buttonY, buttonWidth, buttonHeight, BORDER_COLOR);
+        ui.line("ENTER / SPACE  시작", buttonX + 20f, buttonY + 34f, 0.98f, Color.BLACK);
 
-        drawLine("ESC / Q  종료", cardX + 34f, cardY + 48f, 0.90f, TEXT_MUTED);
+        ui.line("ESC / Q  종료", cardX + 34f, cardY + 48f, 0.90f, TEXT_MUTED);
     }
 
-    private void drawPanel(float x, float y, float width, float height, Color color) {
-        batch.setColor(color);
-        batch.draw(pixelTexture, x, y, width, height);
-        batch.setColor(Color.WHITE);
-    }
-
-    private void drawPanelOutline(float x, float y, float width, float height, Color color) {
-        drawPanel(x, y, width, 2f, color);
-        drawPanel(x, y + height - 2f, width, 2f, color);
-        drawPanel(x, y, 2f, height, color);
-        drawPanel(x + width - 2f, y, 2f, height, color);
-    }
-
-    private void drawTextureCover(Texture texture, float x, float y, float width, float height) {
-        float targetAspect = width / height;
-        float textureAspect = texture.getWidth() / (float) texture.getHeight();
-        int srcX = 0;
-        int srcY = 0;
-        int srcWidth = texture.getWidth();
-        int srcHeight = texture.getHeight();
-
-        if (textureAspect > targetAspect) {
-            srcWidth = Math.round(texture.getHeight() * targetAspect);
-            srcX = (texture.getWidth() - srcWidth) / 2;
-        } else if (textureAspect < targetAspect) {
-            srcHeight = Math.round(texture.getWidth() / targetAspect);
-            srcY = (texture.getHeight() - srcHeight) / 2;
-        }
-
-        batch.draw(texture, x, y, width, height, srcX, srcY, srcWidth, srcHeight, false, false);
-    }
-
-    private void drawTextureFit(Texture texture, float x, float y, float width, float height) {
-        float scale = Math.min(width / texture.getWidth(), height / texture.getHeight());
-        float drawWidth = texture.getWidth() * scale;
-        float drawHeight = texture.getHeight() * scale;
-        float drawX = x + ((width - drawWidth) * 0.5f);
-        float drawY = y + ((height - drawHeight) * 0.5f);
-        batch.draw(texture, drawX, drawY, drawWidth, drawHeight);
-    }
-
-    private void drawParagraph(String text, float x, float y, float width, float scale, Color color) {
-        String[] words = text.split(" ");
-        StringBuilder lineBuilder = new StringBuilder();
-        float cursorY = y;
-
-        for (String word : words) {
-            String candidate = lineBuilder.length() == 0 ? word : lineBuilder + " " + word;
-            if (estimateWidth(candidate, scale) > width && lineBuilder.length() > 0) {
-                drawLine(lineBuilder.toString(), x, cursorY, scale, color);
-                lineBuilder.setLength(0);
-                lineBuilder.append(word);
-                cursorY -= 24f * scale;
-                continue;
-            }
-            lineBuilder.setLength(0);
-            lineBuilder.append(candidate);
-        }
-
-        if (!lineBuilder.isEmpty()) {
-            drawLine(lineBuilder.toString(), x, cursorY, scale, color);
-        }
-    }
-
-    private float estimateWidth(String text, float scale) {
-        return text.length() * 11.4f * scale;
-    }
-
-    private void drawLine(String text, float x, float y, float scale, Color color) {
-        font.getData().setScale(scale);
-        font.setColor(color);
-        font.draw(batch, text, x, y);
-        font.setColor(TEXT_PRIMARY);
-        font.getData().setScale(1f);
+    private Color withAlpha(Color color, float alpha) {
+        return new Color(color.r, color.g, color.b, alpha);
     }
 
     private String buildFontCharacters() {
@@ -198,9 +133,9 @@ public final class TitleScreen extends ScreenAdapter {
         for (String text : List.of(
                 "zunyang-party-panic",
                 "치즈냥 생일 팬게임",
-                "치즈냥이 직접 생일 방송 준비방을 돌아다니며 오늘의 방송 톤과 남아 있던 기억 조각을 정리하는 쯔꾸르풍 팬게임입니다.",
-                "현재 test 모드: 운영 패널과 검증용 정보가 함께 표시됩니다.",
-                "현재 live 모드: 실제 플레이 화면 기준으로 최소한의 UI만 표시됩니다.",
+                "치즈냥이 직접 타일 기반 준비방을 걸으며 조사와 대사로 생일 방송 시작 직전의 장면을 정리하는 전통 2D 쯔꾸르 팬게임입니다.",
+                "현재 test 모드: 타일 좌표와 진행 정보 같은 검증용 정보가 추가 표시됩니다.",
+                "현재 live 모드: 4방향 이동과 하단 대사창 중심의 실제 플레이 화면으로 표시됩니다.",
                 "ENTER / SPACE  시작",
                 "ESC / Q  종료"
         )) {

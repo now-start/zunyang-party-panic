@@ -56,6 +56,9 @@ final class ScreenSupport {
 
     private static Path resolveFontPath() {
         List<Path> candidates = new ArrayList<>();
+        candidates.add(Path.of("src", "main", "resources", "assets", "fonts", "NotoSansKR-Regular.ttf").toAbsolutePath());
+        candidates.add(Path.of("src", "main", "resources", "assets", "fonts", "malgun.ttf").toAbsolutePath());
+        candidates.add(Path.of("src", "main", "resources", "assets", "fonts", "NotoSansKR-VF.ttf").toAbsolutePath());
         candidates.add(Path.of("asset", "fonts", "NotoSansKR-Regular.ttf").toAbsolutePath());
         candidates.add(Path.of("assets", "fonts", "NotoSansKR-Regular.ttf").toAbsolutePath());
         candidates.add(Path.of("asset", "fonts", "malgun.ttf").toAbsolutePath());
@@ -94,7 +97,7 @@ final class ScreenSupport {
         }
 
         throw new IllegalStateException(
-                "Korean font not found. Add a TTF under asset/fonts or install NotoSansKR/Malgun Gothic."
+                "Korean font not found. Add a TTF under src/main/resources/assets/fonts or install NotoSansKR/Malgun Gothic."
         );
     }
 
