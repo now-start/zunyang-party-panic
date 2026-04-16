@@ -10,19 +10,10 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.utils.ScreenUtils;
 import org.nowstart.zunyang.partypanic.PartyPanicGame;
-import org.nowstart.zunyang.partypanic.content.GameContent;
-import org.nowstart.zunyang.partypanic.model.ChoiceSet;
-import org.nowstart.zunyang.partypanic.model.GameState;
-import org.nowstart.zunyang.partypanic.model.PartyAction;
-import org.nowstart.zunyang.partypanic.model.TroubleEvent;
-import org.nowstart.zunyang.partypanic.state.GameStateMachine;
 import org.nowstart.zunyang.partypanic.world.GameProgress;
 
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
 
 public final class PartyPanicScreen extends ScreenAdapter {
@@ -32,10 +23,6 @@ public final class PartyPanicScreen extends ScreenAdapter {
     private static final float STAGE_Y = 116f;
     private static final float STAGE_WIDTH = 1096f;
     private static final float STAGE_HEIGHT = 644f;
-    private static final float HUD_X = STAGE_X;
-    private static final float HUD_Y = 786f;
-    private static final float HUD_WIDTH = STAGE_WIDTH;
-    private static final float HUD_HEIGHT = 86f;
     private static final float PANEL_X = 1160f;
     private static final float PANEL_Y = 116f;
     private static final float PANEL_WIDTH = 404f;
@@ -44,6 +31,23 @@ public final class PartyPanicScreen extends ScreenAdapter {
     private static final float COMMAND_Y = 34f;
     private static final float COMMAND_WIDTH = STAGE_WIDTH;
     private static final float COMMAND_HEIGHT = 62f;
+    private static final float ACTIVE_SECONDS = 45f;
+
+    private static final String[] TASK_TITLES = {
+            "마이크 위치",
+            "책상 조명",
+            "오프닝 메모",
+            "화면 무드"
+    };
+    private static final String[] TASK_HINTS = {
+            "방송 시작할 때 목소리가 가장 잘 들어갈 위치로 맞추기",
+            "너무 어둡지도, 너무 세지도 않게 무드 잡기",
+            "첫 멘트가 꼬이지 않게 메모 순서 정리하기",
+            "오늘 방송 첫 공기가 될 다이얼 맞추기"
+    };
+    private static final float[] DEFAULT_VALUES = {18f, 30f, 86f, 12f};
+    private static final float[] TARGET_MIN = {46f, 66f, 28f, 56f};
+    private static final float[] TARGET_MAX = {54f, 74f, 36f, 64f};
 
     private static final Color TEXT_PRIMARY = new Color(0.97f, 0.93f, 0.85f, 1f);
     private static final Color TEXT_MUTED = new Color(0.90f, 0.84f, 0.80f, 1f);
@@ -54,524 +58,395 @@ public final class PartyPanicScreen extends ScreenAdapter {
     private static final Color STAGE_FRAME = new Color(0.18f, 0.10f, 0.14f, 0.45f);
     private static final Color OVERLAY_COLOR = new Color(0.05f, 0.03f, 0.04f, 0.45f);
     private static final Color HIGHLIGHT_COLOR = new Color(0.96f, 0.61f, 0.71f, 0.92f);
-    private static final Color HIGHLIGHT_MINT = new Color(0.68f, 0.90f, 0.83f, 0.92f);
     private static final Color BORDER_COLOR = new Color(0.97f, 0.86f, 0.78f, 0.90f);
 
     private final PartyPanicGame game;
     private final GameProgress progress;
     private final SpriteBatch batch = new SpriteBatch();
-    private final GameStateMachine stateMachine = new GameStateMachine(GameContent.defaultContent());
     private final BitmapFont font;
     private final Texture pixelTexture;
+    private final Texture backgroundTexture;
     private final Texture hostTexture;
-    private final Texture resultBackgroundTexture;
-    private final Map<String, Texture> stageTextures = new LinkedHashMap<>();
-    private final Map<String, Texture> choiceCardTextures = new LinkedHashMap<>();
-    private final Map<String, Texture> troubleCardTextures = new LinkedHashMap<>();
 
-    private int syntheticViewerSequence = 1;
+    private final float[] values = DEFAULT_VALUES.clone();
+    private final boolean[] confirmed = new boolean[TASK_TITLES.length];
+
+    private Phase phase = Phase.READY;
+    private int selectedIndex;
+    private float secondsRemaining = ACTIVE_SECONDS;
+    private int adjustmentCount;
+    private int finalScore;
+    private String feedback = "SPACE를 눌러 책상 정리를 시작하세요.";
 
     public PartyPanicScreen(PartyPanicGame game, GameProgress progress) {
         this.game = game;
         this.progress = progress;
-        font = ScreenSupport.createFont(buildFontCharacters());
-        pixelTexture = ScreenSupport.createPixelTexture();
-        hostTexture = ScreenSupport.loadTexture("images/characters/zunyang-birthday-host.png");
-        resultBackgroundTexture = ScreenSupport.loadTexture("images/ui/result-card-background.png");
-
-        stageTextures.put("desk-party", ScreenSupport.loadTexture("images/backgrounds/desk-party-stage.png"));
-        stageTextures.put("mint-cats", ScreenSupport.loadTexture("images/backgrounds/mint-cats-stage.png"));
-        stageTextures.put("cake-rush", ScreenSupport.loadTexture("images/backgrounds/cake-rush-stage.png"));
-        stageTextures.put("finale", ScreenSupport.loadTexture("images/backgrounds/finale-stage.png"));
-
-        choiceCardTextures.put("fan-letter", ScreenSupport.loadTexture("images/choices/fan-letter-card.png"));
-        choiceCardTextures.put("mini-game", ScreenSupport.loadTexture("images/choices/mini-game-card.png"));
-        choiceCardTextures.put("photo-time", ScreenSupport.loadTexture("images/choices/photo-time-card.png", "images/events/photo-time-card.png"));
-
-        troubleCardTextures.put("audio-pop", ScreenSupport.loadTexture("images/events/audio-pop-card.png"));
-        troubleCardTextures.put("cake-balance", ScreenSupport.loadTexture("images/events/cake-balance-card.png"));
-        troubleCardTextures.put("camera-chaos", ScreenSupport.loadTexture("images/events/camera-chaos-card.png"));
+        this.font = ScreenSupport.createFont(buildFontCharacters());
+        this.pixelTexture = ScreenSupport.createPixelTexture();
+        this.backgroundTexture = ScreenSupport.loadTexture("images/backgrounds/desk-party-stage.png");
+        this.hostTexture = ScreenSupport.loadTexture("images/characters/zunyang-birthday-host.png");
     }
 
     @Override
     public void render(float delta) {
         handleInput();
-        if (game != null && game.getScreen() != this) {
+        if (game.getScreen() != this) {
             return;
         }
-        stateMachine.update(delta);
+
+        update(delta);
 
         ScreenUtils.clear(0.06f, 0.04f, 0.05f, 1f);
 
         batch.begin();
         drawBackdrop();
-        drawBroadcastFrame();
-        drawBroadcastShowcase();
-        drawHud();
-        drawControlsPanel();
-        drawCommandBar();
+        drawFrames();
+        drawDeskSetupStage();
+        if (showsOperationalUi()) {
+            drawStatusPanel();
+            drawCommandBar();
+        } else {
+            drawLiveHud();
+        }
         batch.end();
     }
 
+    private void update(float delta) {
+        if (phase != Phase.ACTIVE) {
+            return;
+        }
+
+        secondsRemaining = Math.max(0f, secondsRemaining - delta);
+        if (allConfirmed() || secondsRemaining <= 0f) {
+            finishRound();
+        }
+    }
+
     private void handleInput() {
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE) && game != null) {
-            game.showHub("허브로 복귀했습니다. H로 돌아가면 결과를 저장할 수 있습니다.");
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+            game.showHub("방송 책상에서 허브로 복귀했습니다.");
             return;
         }
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
-            stateMachine.startRound();
-        }
-
-        if (Gdx.input.isKeyJustPressed(Input.Keys.R) && stateMachine.getState() == GameState.ROUND_COMPLETE) {
-            stateMachine.startRound();
-        }
-
-        if (Gdx.input.isKeyJustPressed(Input.Keys.H) && stateMachine.getState() == GameState.ROUND_COMPLETE && game != null) {
-            game.finishBroadcastDeskMinigame(stateMachine.getRoundScore());
+        if (phase == Phase.READY) {
+            if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE) || Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+                phase = Phase.ACTIVE;
+                feedback = "첫 작업부터 맞춰 보자.";
+            }
             return;
         }
 
-        if (stateMachine.isChoiceInputOpen()) {
-            if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) {
-                stateMachine.submitChoice(nextSyntheticViewerId(), 0);
+        if (phase == Phase.ACTIVE) {
+            if (Gdx.input.isKeyJustPressed(Input.Keys.UP)) {
+                selectedIndex = (selectedIndex + TASK_TITLES.length - 1) % TASK_TITLES.length;
             }
-            if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_2)) {
-                stateMachine.submitChoice(nextSyntheticViewerId(), 1);
+            if (Gdx.input.isKeyJustPressed(Input.Keys.DOWN) || Gdx.input.isKeyJustPressed(Input.Keys.TAB)) {
+                selectedIndex = (selectedIndex + 1) % TASK_TITLES.length;
             }
-            if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_3)) {
-                stateMachine.submitChoice(nextSyntheticViewerId(), 2);
+            if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT) || Gdx.input.isKeyJustPressed(Input.Keys.A)) {
+                adjustSelected(-6f);
             }
-            if (Gdx.input.isKeyJustPressed(Input.Keys.P)) {
-                int targetIndex = Math.max(0, stateMachine.getLeadingOptionIndex());
-                stateMachine.useTodayPick(targetIndex);
+            if (Gdx.input.isKeyJustPressed(Input.Keys.RIGHT) || Gdx.input.isKeyJustPressed(Input.Keys.D)) {
+                adjustSelected(6f);
             }
+            if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE) || Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+                confirmSelected();
+            }
+            return;
         }
 
-        if (stateMachine.isTroubleInputOpen()) {
-            if (Gdx.input.isKeyJustPressed(Input.Keys.V)) {
-                stateMachine.registerTroubleResponse(nextSyntheticViewerId());
-            }
-            if (Gdx.input.isKeyJustPressed(Input.Keys.E)) {
-                stateMachine.triggerEmergencyCall();
-            }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.R) || Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+            resetRound();
+            return;
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.H) || Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
+            game.finishBroadcastDeskMinigame(finalScore);
+        }
+    }
+
+    private void adjustSelected(float delta) {
+        if (confirmed[selectedIndex]) {
+            feedback = TASK_TITLES[selectedIndex] + "은 이미 고정했습니다.";
+            return;
         }
 
-        if (stateMachine.isFinaleInputOpen()) {
-            if (Gdx.input.isKeyJustPressed(Input.Keys.C)) {
-                stateMachine.submitFinaleCheer(nextSyntheticViewerId());
+        values[selectedIndex] = Math.max(0f, Math.min(100f, values[selectedIndex] + delta));
+        adjustmentCount += 1;
+        feedback = TASK_TITLES[selectedIndex] + " 수치를 조정했습니다.";
+    }
+
+    private void confirmSelected() {
+        if (confirmed[selectedIndex]) {
+            feedback = TASK_TITLES[selectedIndex] + "은 이미 완료했습니다.";
+            return;
+        }
+
+        if (!isWithinTarget(selectedIndex)) {
+            feedback = TASK_TITLES[selectedIndex] + "이 아직 맞지 않습니다. 민트 구간에 맞춰 주세요.";
+            return;
+        }
+
+        confirmed[selectedIndex] = true;
+        feedback = TASK_TITLES[selectedIndex] + " 고정 완료.";
+        if (!allConfirmed()) {
+            selectedIndex = findNextIncompleteIndex();
+        }
+    }
+
+    private boolean isWithinTarget(int index) {
+        return values[index] >= TARGET_MIN[index] && values[index] <= TARGET_MAX[index];
+    }
+
+    private int findNextIncompleteIndex() {
+        for (int index = 0; index < confirmed.length; index += 1) {
+            if (!confirmed[index]) {
+                return index;
             }
-            if (Gdx.input.isKeyJustPressed(Input.Keys.F)) {
-                stateMachine.triggerFinale();
+        }
+        return selectedIndex;
+    }
+
+    private boolean allConfirmed() {
+        for (boolean value : confirmed) {
+            if (!value) {
+                return false;
             }
+        }
+        return true;
+    }
+
+    private void finishRound() {
+        phase = Phase.RESULT;
+        finalScore = calculateFinalScore();
+        if (allConfirmed()) {
+            feedback = "좋아. 적어도 방송은 시작할 수 있겠다.";
+        } else {
+            feedback = "시간이 다 됐다. 그래도 시작할 정도는 정리됐다.";
+        }
+    }
+
+    private int calculateFinalScore() {
+        int completedCount = 0;
+        int accuracyBonus = 0;
+        for (int index = 0; index < TASK_TITLES.length; index += 1) {
+            if (confirmed[index]) {
+                completedCount += 1;
+            }
+            float center = (TARGET_MIN[index] + TARGET_MAX[index]) * 0.5f;
+            accuracyBonus += Math.max(0, 18 - Math.round(Math.abs(values[index] - center)));
+        }
+
+        int timeBonus = Math.round(secondsRemaining);
+        int efficiencyBonus = Math.max(0, 24 - adjustmentCount);
+        return Math.max(0, (completedCount * 24) + accuracyBonus + timeBonus + efficiencyBonus);
+    }
+
+    private void resetRound() {
+        phase = Phase.READY;
+        selectedIndex = 0;
+        secondsRemaining = ACTIVE_SECONDS;
+        adjustmentCount = 0;
+        finalScore = 0;
+        feedback = "SPACE를 눌러 책상 정리를 다시 시작하세요.";
+        System.arraycopy(DEFAULT_VALUES, 0, values, 0, values.length);
+        for (int index = 0; index < confirmed.length; index += 1) {
+            confirmed[index] = false;
         }
     }
 
     private void drawBackdrop() {
-        Texture backdrop = resolveBackdropTexture();
-        drawTextureCover(backdrop, 0f, 0f, WINDOW_WIDTH, WINDOW_HEIGHT);
+        drawTextureCover(backgroundTexture, 0f, 0f, WINDOW_WIDTH, WINDOW_HEIGHT);
         drawPanel(0f, 0f, WINDOW_WIDTH, WINDOW_HEIGHT, OVERLAY_COLOR);
     }
 
-    private void drawBroadcastFrame() {
+    private void drawFrames() {
         drawPanel(STAGE_X - 8f, STAGE_Y - 8f, STAGE_WIDTH + 16f, STAGE_HEIGHT + 16f, STAGE_FRAME);
-        drawTextureCover(resolveMainStageTexture(), STAGE_X, STAGE_Y, STAGE_WIDTH, STAGE_HEIGHT);
-        drawPanel(STAGE_X, STAGE_Y, STAGE_WIDTH, STAGE_HEIGHT, new Color(0.03f, 0.02f, 0.03f, 0.12f));
+        drawTextureCover(backgroundTexture, STAGE_X, STAGE_Y, STAGE_WIDTH, STAGE_HEIGHT);
+        drawPanel(STAGE_X, STAGE_Y, STAGE_WIDTH, STAGE_HEIGHT, new Color(0.03f, 0.02f, 0.03f, 0.14f));
         drawPanelOutline(STAGE_X - 1f, STAGE_Y - 1f, STAGE_WIDTH + 2f, STAGE_HEIGHT + 2f, BORDER_COLOR);
 
-        drawPanel(HUD_X, HUD_Y, HUD_WIDTH, HUD_HEIGHT, PANEL_STRONG);
-        drawPanelOutline(HUD_X, HUD_Y, HUD_WIDTH, HUD_HEIGHT, BORDER_COLOR);
+        if (showsOperationalUi()) {
+            drawPanel(PANEL_X, PANEL_Y, PANEL_WIDTH, PANEL_HEIGHT, PANEL_STRONG);
+            drawPanelOutline(PANEL_X, PANEL_Y, PANEL_WIDTH, PANEL_HEIGHT, BORDER_COLOR);
 
-        drawPanel(PANEL_X, PANEL_Y, PANEL_WIDTH, PANEL_HEIGHT, PANEL_STRONG);
-        drawPanelOutline(PANEL_X, PANEL_Y, PANEL_WIDTH, PANEL_HEIGHT, BORDER_COLOR);
-
-        drawPanel(COMMAND_X, COMMAND_Y, COMMAND_WIDTH, COMMAND_HEIGHT, PANEL_STRONG);
-        drawPanelOutline(COMMAND_X, COMMAND_Y, COMMAND_WIDTH, COMMAND_HEIGHT, BORDER_COLOR);
+            drawPanel(COMMAND_X, COMMAND_Y, COMMAND_WIDTH, COMMAND_HEIGHT, PANEL_STRONG);
+            drawPanelOutline(COMMAND_X, COMMAND_Y, COMMAND_WIDTH, COMMAND_HEIGHT, BORDER_COLOR);
+        }
     }
 
-    private void drawBroadcastShowcase() {
-        if (stateMachine.getState() == GameState.ROUND_COMPLETE) {
-            drawResultScene();
-            drawHostCharacter();
-            return;
-        }
+    private void drawDeskSetupStage() {
+        float titleX = STAGE_X + 24f;
+        float titleY = STAGE_Y + STAGE_HEIGHT - 18f;
+        float infoX = STAGE_X + 28f;
+        float infoY = STAGE_Y + STAGE_HEIGHT - 144f;
+        float infoWidth = 596f;
+        float infoHeight = 100f;
+        float hostHeight = 404f;
+        float hostWidth = hostHeight * (hostTexture.getWidth() / (float) hostTexture.getHeight());
+        float hostX = STAGE_X + STAGE_WIDTH - hostWidth - 28f;
+        float hostY = STAGE_Y + 46f;
 
-        if (stateMachine.isChoicePhase()) {
-            drawHostCharacter();
-            drawChoiceScene();
-            return;
-        }
-
-        if (stateMachine.isTroublePhase()) {
-            drawHostCharacter();
-            drawTroubleScene();
-            return;
-        }
-
-        if (stateMachine.isFinaleInputOpen() || stateMachine.getState() == GameState.FINALE_RESOLVE) {
-            drawHostCharacter();
-            drawFinaleScene();
-            return;
-        }
-
-        drawHostCharacter();
-        drawIdleScene();
-    }
-
-    private void drawIdleScene() {
-        float cardX = STAGE_X + 46f;
-        float cardY = STAGE_Y + 128f;
-        float cardWidth = 520f;
-        float cardHeight = 210f;
-
-        drawPanel(cardX, cardY, cardWidth, cardHeight, PANEL_COLOR);
-        drawPanelOutline(cardX, cardY, cardWidth, cardHeight, BORDER_COLOR);
-        drawLine("방송 책상 미니게임", cardX + 24f, cardY + cardHeight - 24f, 1.18f, TEXT_ACCENT);
-        drawParagraph("SPACE로 라운드를 시작하면 배경 투표 1회, 이벤트 카드 투표 1회, 사고 대응 3회, 피날레 응원 1회가 이어집니다.", cardX + 24f, cardY + 138f, cardWidth - 48f, 0.98f, TEXT_PRIMARY);
-        drawParagraph("라운드 완료 후 H를 누르면 허브로 돌아가며 결과가 저장됩니다. ESC는 언제든 허브 복귀입니다.", cardX + 24f, cardY + 82f, cardWidth - 48f, 0.95f, TEXT_MUTED);
-        drawLine("현재 최고 점수 " + progress.getBestScore(GameProgress.BROADCAST_DESK), cardX + 24f, cardY + 36f, 0.90f, TEXT_MINT);
-    }
-
-    private void drawChoiceScene() {
-        ChoiceSet choiceSet = stateMachine.getCurrentChoiceSet();
-        if (choiceSet == null) {
-            return;
-        }
-
-        float infoX = STAGE_X + 36f;
-        float infoY = STAGE_Y + STAGE_HEIGHT - 156f;
-        float infoWidth = 580f;
-        float infoHeight = 118f;
-        int emphasisIndex = stateMachine.isChoiceInputOpen()
-                ? Math.max(0, stateMachine.getLeadingOptionIndex())
-                : Math.max(0, stateMachine.getWinningOptionIndex());
-
+        drawLine("방송 책상 정리", titleX, titleY, 1.22f, TEXT_ACCENT);
         drawPanel(infoX, infoY, infoWidth, infoHeight, PANEL_COLOR);
         drawPanelOutline(infoX, infoY, infoWidth, infoHeight, BORDER_COLOR);
-        drawLine(choiceSet.roundLabel(), infoX + 22f, infoY + infoHeight - 20f, 1.10f, TEXT_ACCENT);
-        drawParagraph(choiceSet.prompt(), infoX + 22f, infoY + 60f, infoWidth - 44f, 1.02f, TEXT_PRIMARY);
-        drawParagraph("선두 선택은 분홍 테두리로 강조됩니다. 숫자 1 2 3으로 테스트 득표, P로 오늘의 픽을 넣을 수 있습니다.", infoX + 22f, infoY + 26f, infoWidth - 44f, 0.86f, TEXT_MUTED);
+        drawParagraph(resolvePhaseDescription(), infoX + 18f, infoY + 58f, infoWidth - 36f, 0.94f, TEXT_PRIMARY);
+        drawLine(resolvePhaseHint(), infoX + 18f, infoY + 24f, 0.82f, TEXT_MUTED);
 
-        drawChoiceGallery(choiceSet, emphasisIndex);
-    }
-
-    private void drawChoiceGallery(ChoiceSet choiceSet, int emphasisIndex) {
-        boolean firstChoice = stateMachine.getCurrentChoiceIndex() == 0;
-        float cardWidth = firstChoice ? 248f : 228f;
-        float cardHeight = firstChoice ? 176f : 228f;
-        float gap = 28f;
-        float totalWidth = (cardWidth * 3f) + (gap * 2f);
-        float startX = STAGE_X + 52f;
-        float startY = STAGE_Y + 42f;
-        List<PartyAction> actions = choiceSet.actions();
-        List<Integer> voteCounts = stateMachine.getVoteCounts();
-        boolean resolvedState = !stateMachine.isChoiceInputOpen();
-
-        if (totalWidth > STAGE_WIDTH - 360f) {
-            startX = STAGE_X + 36f;
+        float startX = STAGE_X + 56f;
+        float startY = STAGE_Y + 302f;
+        for (int index = 0; index < TASK_TITLES.length; index += 1) {
+            float x = startX + ((index % 2) * 318f);
+            float y = startY - ((index / 2) * 190f);
+            drawTaskCard(index, x, y, 286f, 150f);
         }
 
-        for (int index = 0; index < actions.size(); index += 1) {
-            PartyAction action = actions.get(index);
-            Texture texture = resolveChoiceTexture(action.id(), firstChoice);
-            float x = startX + (index * (cardWidth + gap));
-            float y = startY;
-            Color border = index == emphasisIndex ? HIGHLIGHT_COLOR : BORDER_COLOR;
-
-            drawPanel(x - 10f, y - 10f, cardWidth + 20f, cardHeight + 72f, new Color(0.13f, 0.08f, 0.12f, 0.75f));
-            drawTextureCover(texture, x, y + 34f, cardWidth, cardHeight);
-            drawPanel(x, y + 34f, cardWidth, cardHeight, new Color(0.05f, 0.03f, 0.04f, 0.18f));
-            drawPanelOutline(x, y + 34f, cardWidth, cardHeight, border);
-
-            drawLine((index + 1) + ". " + action.title(), x, y + 22f, 0.96f, index == emphasisIndex ? TEXT_ACCENT : TEXT_PRIMARY);
-            drawLine(resolveVoteLabel(voteCounts, index, resolvedState, emphasisIndex), x, y + 2f, 0.84f, TEXT_MUTED);
-        }
+        drawPanel(hostX - 16f, hostY - 14f, hostWidth + 32f, hostHeight + 28f, new Color(0.14f, 0.08f, 0.12f, 0.36f));
+        drawTextureFit(hostTexture, hostX, hostY, hostWidth, hostHeight);
     }
 
-    private void drawTroubleScene() {
-        TroubleEvent troubleEvent = stateMachine.getCurrentTroubleEvent();
-        if (troubleEvent == null) {
-            return;
-        }
+    private void drawTaskCard(int index, float x, float y, float width, float height) {
+        boolean selected = selectedIndex == index;
+        boolean completed = confirmed[index];
+        Color border = completed ? TEXT_MINT : selected ? HIGHLIGHT_COLOR : BORDER_COLOR;
+        float gaugeWidth = width - 34f;
+        float markerX = x + 18f + (gaugeWidth * (values[index] / 100f));
+        float targetX = x + 18f + (gaugeWidth * (TARGET_MIN[index] / 100f));
+        float targetWidth = gaugeWidth * ((TARGET_MAX[index] - TARGET_MIN[index]) / 100f);
 
-        float infoX = STAGE_X + 36f;
-        float infoY = STAGE_Y + STAGE_HEIGHT - 160f;
-        float infoWidth = 590f;
-        float infoHeight = 122f;
-        float cardX = STAGE_X + 58f;
-        float cardY = STAGE_Y + 148f;
-        float cardSize = 288f;
-        int requiredResponses = stateMachine.getCurrentTroubleRequiredResponses();
-        int progress = stateMachine.getTroubleProgress();
-        float progressRatio = requiredResponses == 0 ? 0f : Math.min(1f, progress / (float) requiredResponses);
+        drawPanel(x, y, width, height, PANEL_COLOR);
+        drawPanelOutline(x, y, width, height, border);
+        drawLine(TASK_TITLES[index], x + 18f, y + height - 18f, 0.94f, completed ? TEXT_MINT : TEXT_PRIMARY);
+        drawParagraph(TASK_HINTS[index], x + 18f, y + height - 48f, width - 36f, 0.76f, TEXT_MUTED);
 
-        drawPanel(infoX, infoY, infoWidth, infoHeight, PANEL_COLOR);
-        drawPanelOutline(infoX, infoY, infoWidth, infoHeight, BORDER_COLOR);
-        drawLine(troubleEvent.title(), infoX + 22f, infoY + infoHeight - 22f, 1.06f, TEXT_ACCENT);
-        drawParagraph(troubleEvent.instruction(), infoX + 22f, infoY + 64f, infoWidth - 44f, 0.98f, TEXT_PRIMARY);
-        drawParagraph("V로 대응 1, E로 긴급 정리 콜 2를 추가합니다.", infoX + 22f, infoY + 28f, infoWidth - 44f, 0.86f, TEXT_MUTED);
+        drawPanel(x + 18f, y + 46f, gaugeWidth, 18f, new Color(0.22f, 0.15f, 0.18f, 0.92f));
+        drawPanel(targetX, y + 46f, targetWidth, 18f, TEXT_MINT);
+        drawPanelOutline(x + 18f, y + 46f, gaugeWidth, 18f, BORDER_COLOR);
+        drawPanel(markerX - 4f, y + 40f, 8f, 30f, HIGHLIGHT_COLOR);
 
-        Texture troubleTexture = troubleCardTextures.get(troubleEvent.id());
-        drawPanel(cardX - 10f, cardY - 10f, cardSize + 20f, cardSize + 20f, new Color(0.12f, 0.08f, 0.11f, 0.75f));
-        drawTextureFit(troubleTexture, cardX, cardY, cardSize, cardSize);
-        drawPanelOutline(cardX, cardY, cardSize, cardSize, HIGHLIGHT_COLOR);
-
-        drawMiniSelectionBadge(resolveResolvedChoiceAction(1), STAGE_X + 388f, STAGE_Y + 184f, 172f, "선택된 이벤트");
-
-        float meterX = STAGE_X + 388f;
-        float meterY = STAGE_Y + 136f;
-        float meterWidth = 246f;
-        drawLine("현재 대응 " + progress + " / " + requiredResponses, meterX, meterY + 56f, 1.00f, TEXT_PRIMARY);
-        drawPanel(meterX, meterY + 18f, meterWidth, 16f, new Color(0.22f, 0.16f, 0.18f, 0.90f));
-        drawPanel(meterX, meterY + 18f, meterWidth * progressRatio, 16f, HIGHLIGHT_MINT);
-        drawPanelOutline(meterX, meterY + 18f, meterWidth, 16f, BORDER_COLOR);
+        drawLine("현재 수치 " + Math.round(values[index]), x + 18f, y + 24f, 0.78f, TEXT_PRIMARY);
+        drawLine(completed ? "고정 완료" : isWithinTarget(index) ? "확정 가능" : "조정 필요", x + 142f, y + 24f, 0.78f, completed ? TEXT_MINT : isWithinTarget(index) ? TEXT_ACCENT : TEXT_MUTED);
     }
 
-    private void drawFinaleScene() {
-        float infoX = STAGE_X + 36f;
-        float infoY = STAGE_Y + STAGE_HEIGHT - 152f;
-        float infoWidth = 612f;
-        float infoHeight = 114f;
-        float cheerRatio = Math.min(1f, stateMachine.getFinaleCheerCount() / (float) stateMachine.getFinaleTriggerThreshold());
-
-        drawPanel(infoX, infoY, infoWidth, infoHeight, PANEL_COLOR);
-        drawPanelOutline(infoX, infoY, infoWidth, infoHeight, BORDER_COLOR);
-        drawLine(stateMachine.getPhaseTitle(), infoX + 22f, infoY + infoHeight - 22f, 1.12f, TEXT_ACCENT);
-        drawParagraph(stateMachine.getPhaseMessage(), infoX + 22f, infoY + 60f, infoWidth - 44f, 0.98f, TEXT_PRIMARY);
-        drawParagraph(stateMachine.getSummaryMessage(), infoX + 22f, infoY + 26f, infoWidth - 44f, 0.86f, TEXT_MUTED);
-
-        float meterX = STAGE_X + 54f;
-        float meterY = STAGE_Y + 172f;
-        float meterWidth = 364f;
-        drawLine("피날레 응원 " + stateMachine.getFinaleCheerCount() + " / " + stateMachine.getFinaleTriggerThreshold(), meterX, meterY + 58f, 1.02f, TEXT_PRIMARY);
-        drawPanel(meterX, meterY + 22f, meterWidth, 20f, new Color(0.22f, 0.14f, 0.18f, 0.88f));
-        drawPanel(meterX, meterY + 22f, meterWidth * cheerRatio, 20f, HIGHLIGHT_COLOR);
-        drawPanelOutline(meterX, meterY + 22f, meterWidth, 20f, BORDER_COLOR);
-
-        drawMiniSelectionBadge(resolveResolvedChoiceAction(1), STAGE_X + 470f, STAGE_Y + 178f, 184f, "선택된 이벤트");
-    }
-
-    private void drawResultScene() {
-        drawTextureCover(resultBackgroundTexture, STAGE_X, STAGE_Y, STAGE_WIDTH, STAGE_HEIGHT);
-        drawPanel(STAGE_X, STAGE_Y, STAGE_WIDTH, STAGE_HEIGHT, new Color(0.05f, 0.03f, 0.04f, 0.18f));
-
-        float resultX = STAGE_X + 56f;
-        float resultY = STAGE_Y + 150f;
-        float resultWidth = 520f;
-        float resultHeight = 278f;
-        String grade = resolveGrade(stateMachine.getRoundScore());
-
-        drawPanel(resultX, resultY, resultWidth, resultHeight, new Color(0.13f, 0.08f, 0.11f, 0.80f));
-        drawPanelOutline(resultX, resultY, resultWidth, resultHeight, BORDER_COLOR);
-        drawLine("생일 파티 결과", resultX + 28f, resultY + resultHeight - 26f, 1.14f, TEXT_ACCENT);
-        drawLine(grade, resultX + 28f, resultY + resultHeight - 88f, 2.10f, HIGHLIGHT_MINT);
-        drawLine("최종 점수 " + stateMachine.getRoundScore(), resultX + 158f, resultY + resultHeight - 94f, 1.04f, TEXT_PRIMARY);
-        drawParagraph(resolveGradeLine(grade), resultX + 28f, resultY + 118f, resultWidth - 56f, 1.00f, TEXT_PRIMARY);
-        drawParagraph(stateMachine.getSummaryMessage(), resultX + 28f, resultY + 72f, resultWidth - 56f, 0.90f, TEXT_MUTED);
-
-        drawMiniSelectionBadge(resolveResolvedChoiceAction(0), STAGE_X + 620f, STAGE_Y + 194f, 176f, "확정된 배경");
-        drawMiniSelectionBadge(resolveResolvedChoiceAction(1), STAGE_X + 816f, STAGE_Y + 194f, 176f, "확정된 이벤트");
-    }
-
-    private void drawHud() {
-        String timer = String.format(Locale.ROOT, "남은 시간 %.1f초", stateMachine.getSecondsRemaining());
-        String metrics = String.format(
-                Locale.ROOT,
-                "참여자 %d명  |  점수 %d  |  피날레 %d/%d",
-                stateMachine.getUniqueParticipantCount(),
-                stateMachine.getRoundScore(),
-                stateMachine.getFinaleCheerCount(),
-                stateMachine.getFinaleTriggerThreshold()
-        );
-
-        drawLine("방송 책상 미니게임", HUD_X + 22f, HUD_Y + HUD_HEIGHT - 18f, 1.20f, TEXT_ACCENT);
-        drawLine(stateMachine.getPhaseTitle(), HUD_X + 22f, HUD_Y + 34f, 1.08f, TEXT_PRIMARY);
-        drawLine(timer, HUD_X + 440f, HUD_Y + HUD_HEIGHT - 18f, 0.98f, TEXT_PRIMARY);
-        drawLine(metrics, HUD_X + 440f, HUD_Y + 34f, 0.96f, TEXT_MUTED);
-    }
-
-    private void drawControlsPanel() {
+    private void drawStatusPanel() {
         float left = PANEL_X + 22f;
-        float top = PANEL_Y + PANEL_HEIGHT - 26f;
-        PartyAction stageAction = resolveResolvedChoiceAction(0);
-        PartyAction routeAction = resolveResolvedChoiceAction(1);
+        float top = PANEL_Y + PANEL_HEIGHT - 24f;
+        float timeRatio = secondsRemaining / ACTIVE_SECONDS;
+        float completedRatio = getConfirmedCount() / (float) TASK_TITLES.length;
 
-        drawLine("운영 패널", left, top, 1.16f, TEXT_ACCENT);
-        drawLine("상태 " + stateMachine.getState().name(), left, top - 34f, 0.90f, TEXT_MUTED);
-        drawLine("방송 무드 " + readableActionTitle(stageAction, "기본 무대"), left, top - 66f, 0.92f, TEXT_PRIMARY);
-        drawLine("중반 이벤트 " + readableActionTitle(routeAction, "미정"), left, top - 94f, 0.92f, TEXT_PRIMARY);
+        drawLine("책상 상태", left, top, 1.16f, TEXT_ACCENT);
+        drawLine("단계 " + phase.name(), left, top - 34f, 0.92f, TEXT_PRIMARY);
+        drawLine("최고 점수 " + progress.getBestScore(GameProgress.BROADCAST_DESK), left, top - 66f, 0.92f, TEXT_MINT);
 
-        float rowY = top - 154f;
-        drawControlRow("SPACE", "라운드 시작 / 재시작", rowY, stateMachine.getState() == GameState.IDLE || stateMachine.getState() == GameState.ROUND_COMPLETE);
-        drawControlRow("1 2 3", "선택지 테스트 득표", rowY - 48f, stateMachine.isChoiceInputOpen());
-        drawControlRow("P", "오늘의 픽", rowY - 96f, stateMachine.canUseTodayPick());
-        drawControlRow("V", "사고 대응 1회", rowY - 144f, stateMachine.isTroubleInputOpen());
-        drawControlRow("E", "긴급 정리 콜", rowY - 192f, stateMachine.canTriggerEmergencyCall());
-        drawControlRow("C", "피날레 응원", rowY - 240f, stateMachine.isFinaleInputOpen());
-        drawControlRow("F", "생일 소원 발동", rowY - 288f, stateMachine.canTriggerFinale());
-        drawControlRow("R", "결과 후 다시 시작", rowY - 336f, stateMachine.getState() == GameState.ROUND_COMPLETE);
-        drawControlRow("H", "결과 저장 후 허브 복귀", rowY - 384f, stateMachine.getState() == GameState.ROUND_COMPLETE);
-        drawControlRow("ESC", "허브 복귀", rowY - 432f, true);
+        drawLine("남은 시간", left, top - 126f, 0.96f, TEXT_PRIMARY);
+        drawPanel(left, top - 156f, PANEL_WIDTH - 52f, 18f, new Color(0.22f, 0.15f, 0.18f, 0.92f));
+        drawPanel(left, top - 156f, (PANEL_WIDTH - 52f) * timeRatio, 18f, HIGHLIGHT_COLOR);
+        drawPanelOutline(left, top - 156f, PANEL_WIDTH - 52f, 18f, BORDER_COLOR);
+        drawLine(String.format("%.1f초", secondsRemaining), left, top - 168f, 0.78f, TEXT_MUTED);
 
-        float noteY = PANEL_Y + 92f;
-        drawLine("요약", left, noteY + 108f, 1.00f, TEXT_ACCENT);
-        drawParagraph("상황: " + stateMachine.getPhaseMessage(), left, noteY + 72f, PANEL_WIDTH - 44f, 0.92f, TEXT_PRIMARY);
-        drawParagraph("요약: " + stateMachine.getSummaryMessage(), left, noteY + 26f, PANEL_WIDTH - 44f, 0.86f, TEXT_MUTED);
+        drawLine("완료 진행", left, top - 214f, 0.96f, TEXT_PRIMARY);
+        drawPanel(left, top - 244f, PANEL_WIDTH - 52f, 18f, new Color(0.22f, 0.15f, 0.18f, 0.92f));
+        drawPanel(left, top - 244f, (PANEL_WIDTH - 52f) * completedRatio, 18f, TEXT_MINT);
+        drawPanelOutline(left, top - 244f, PANEL_WIDTH - 52f, 18f, BORDER_COLOR);
+        drawLine(getConfirmedCount() + " / " + TASK_TITLES.length + " 항목", left, top - 256f, 0.78f, TEXT_MUTED);
+
+        drawLine("선택 중", left, top - 314f, 0.96f, TEXT_PRIMARY);
+        drawLine(TASK_TITLES[selectedIndex], left, top - 348f, 1.14f, TEXT_PRIMARY);
+        drawParagraph(TASK_HINTS[selectedIndex], left, top - 382f, PANEL_WIDTH - 44f, 0.82f, TEXT_MUTED);
+
+        float guideY = PANEL_Y + 166f;
+        drawPanel(left - 2f, guideY, PANEL_WIDTH - 44f, 168f, PANEL_COLOR);
+        drawPanelOutline(left - 2f, guideY, PANEL_WIDTH - 44f, 168f, BORDER_COLOR);
+        drawLine("안내", left + 14f, guideY + 138f, 0.98f, TEXT_ACCENT);
+        drawParagraph(feedback, left + 14f, guideY + 98f, PANEL_WIDTH - 74f, 0.84f, TEXT_PRIMARY);
+        drawParagraph("UP / DOWN 으로 작업 선택, LEFT / RIGHT 로 수치 조정, SPACE 로 확정합니다.", left + 14f, guideY + 52f, PANEL_WIDTH - 74f, 0.80f, TEXT_MUTED);
+        drawParagraph("결과 화면에서는 H 또는 ENTER로 저장, R로 재시작합니다.", left + 14f, guideY + 20f, PANEL_WIDTH - 74f, 0.80f, TEXT_MUTED);
+
+        if (phase == Phase.RESULT) {
+            float resultY = PANEL_Y + 74f;
+            drawLine("결과 점수", left, resultY + 80f, 0.98f, TEXT_ACCENT);
+            drawLine(String.valueOf(finalScore), left, resultY + 34f, 1.86f, TEXT_MINT);
+        }
     }
 
-    private void drawControlRow(String key, String label, float baselineY, boolean active) {
-        float keyX = PANEL_X + 22f;
-        float keyWidth = 92f;
-        float rowWidth = PANEL_WIDTH - 44f;
-        float rowHeight = 36f;
-        Color tagColor = active ? HIGHLIGHT_COLOR : new Color(0.26f, 0.18f, 0.21f, 0.95f);
-        Color rowColor = active ? new Color(0.20f, 0.12f, 0.16f, 0.72f) : new Color(0.12f, 0.08f, 0.11f, 0.72f);
+    private void drawLiveHud() {
+        float chipX = WINDOW_WIDTH - 246f;
+        float chipY = WINDOW_HEIGHT - 116f;
+        float chipWidth = 190f;
+        float chipHeight = 84f;
+        float feedbackX = STAGE_X + 28f;
+        float feedbackY = STAGE_Y + 24f;
+        float feedbackWidth = 560f;
+        float feedbackHeight = 84f;
 
-        drawPanel(keyX, baselineY - 24f, rowWidth, rowHeight, rowColor);
-        drawPanel(keyX, baselineY - 24f, keyWidth, rowHeight, tagColor);
-        drawPanelOutline(keyX, baselineY - 24f, rowWidth, rowHeight, BORDER_COLOR);
-        drawLine(key, keyX + 14f, baselineY - 2f, 0.92f, active ? Color.BLACK : TEXT_PRIMARY);
-        drawLine(label, keyX + keyWidth + 16f, baselineY - 2f, 0.90f, active ? TEXT_PRIMARY : TEXT_MUTED);
+        drawPanel(chipX, chipY, chipWidth, chipHeight, PANEL_STRONG);
+        drawPanelOutline(chipX, chipY, chipWidth, chipHeight, BORDER_COLOR);
+        drawLine(String.format("%.1f초", secondsRemaining), chipX + 16f, chipY + 54f, 0.96f, TEXT_PRIMARY);
+        drawLine(getConfirmedCount() + " / " + TASK_TITLES.length + " 정리", chipX + 16f, chipY + 24f, 0.82f, TEXT_MINT);
+
+        drawPanel(feedbackX, feedbackY, feedbackWidth, feedbackHeight, PANEL_COLOR);
+        drawPanelOutline(feedbackX, feedbackY, feedbackWidth, feedbackHeight, BORDER_COLOR);
+        drawParagraph(feedback, feedbackX + 18f, feedbackY + 50f, feedbackWidth - 36f, 0.84f, TEXT_PRIMARY);
+        drawLine(resolveLiveHint(), feedbackX + 18f, feedbackY + 20f, 0.76f, TEXT_MUTED);
+
+        if (phase != Phase.RESULT) {
+            return;
+        }
+
+        float resultWidth = 256f;
+        float resultHeight = 118f;
+        float resultX = STAGE_X + ((STAGE_WIDTH - resultWidth) * 0.5f);
+        float resultY = STAGE_Y + 40f;
+
+        drawPanel(resultX, resultY, resultWidth, resultHeight, PANEL_STRONG);
+        drawPanelOutline(resultX, resultY, resultWidth, resultHeight, HIGHLIGHT_COLOR);
+        drawLine("결과 점수", resultX + 22f, resultY + 86f, 0.92f, TEXT_ACCENT);
+        drawLine(String.valueOf(finalScore), resultX + 22f, resultY + 36f, 1.90f, TEXT_MINT);
     }
 
     private void drawCommandBar() {
-        drawLine(resolveCommandHint(), COMMAND_X + 22f, COMMAND_Y + 38f, 0.94f, TEXT_PRIMARY);
+        drawLine(resolveCommandHint(), COMMAND_X + 22f, COMMAND_Y + 38f, 0.90f, TEXT_PRIMARY);
     }
 
-    private void drawHostCharacter() {
-        float drawHeight = 468f;
-        float drawWidth = drawHeight * (hostTexture.getWidth() / (float) hostTexture.getHeight());
-        float x = STAGE_X + STAGE_WIDTH - drawWidth - 42f;
-        float y = STAGE_Y + 22f;
-
-        drawPanel(x - 18f, y - 16f, drawWidth + 36f, drawHeight + 32f, new Color(0.14f, 0.08f, 0.12f, 0.40f));
-        drawTextureFit(hostTexture, x, y, drawWidth, drawHeight);
-    }
-
-    private void drawMiniSelectionBadge(PartyAction action, float x, float y, float size, String label) {
-        if (action == null) {
-            return;
-        }
-
-        Texture texture = resolveChoiceTexture(action.id(), false);
-        if (texture == null) {
-            texture = resolveChoiceTexture(action.id(), true);
-        }
-
-        drawPanel(x, y, size, size + 52f, new Color(0.12f, 0.08f, 0.11f, 0.78f));
-        drawTextureFit(texture, x + 12f, y + 34f, size - 24f, size - 24f);
-        drawPanelOutline(x, y, size, size + 52f, BORDER_COLOR);
-        drawLine(label, x + 12f, y + 22f, 0.78f, TEXT_MUTED);
-        drawLine(action.title(), x + 12f, y + size + 34f, 0.82f, TEXT_PRIMARY);
-    }
-
-    private Texture resolveBackdropTexture() {
-        if (stateMachine.getState() == GameState.ROUND_COMPLETE) {
-            return resultBackgroundTexture;
-        }
-        if (stateMachine.isFinaleInputOpen() || stateMachine.getState() == GameState.FINALE_RESOLVE) {
-            return stageTextures.get("finale");
-        }
-        return resolveStageThemeTexture();
-    }
-
-    private Texture resolveMainStageTexture() {
-        if (stateMachine.getState() == GameState.ROUND_COMPLETE) {
-            return resultBackgroundTexture;
-        }
-        if (stateMachine.isFinaleInputOpen() || stateMachine.getState() == GameState.FINALE_RESOLVE) {
-            return stageTextures.get("finale");
-        }
-        return resolveStageThemeTexture();
-    }
-
-    private Texture resolveStageThemeTexture() {
-        PartyAction resolvedStageAction = resolveResolvedChoiceAction(0);
-        if (resolvedStageAction != null) {
-            return stageTextures.getOrDefault(resolvedStageAction.id(), stageTextures.get("desk-party"));
-        }
-
-        ChoiceSet currentChoiceSet = stateMachine.getCurrentChoiceSet();
-        if (currentChoiceSet != null && stateMachine.getCurrentChoiceIndex() == 0) {
-            int previewIndex = stateMachine.isChoiceInputOpen()
-                    ? Math.max(0, stateMachine.getLeadingOptionIndex())
-                    : Math.max(0, stateMachine.getWinningOptionIndex());
-
-            if (previewIndex < currentChoiceSet.actions().size()) {
-                String actionId = currentChoiceSet.actions().get(previewIndex).id();
-                return stageTextures.getOrDefault(actionId, stageTextures.get("desk-party"));
-            }
-        }
-
-        return stageTextures.get("desk-party");
-    }
-
-    private Texture resolveChoiceTexture(String actionId, boolean firstChoice) {
-        if (firstChoice) {
-            return stageTextures.getOrDefault(actionId, stageTextures.get("desk-party"));
-        }
-        return choiceCardTextures.getOrDefault(actionId, troubleCardTextures.get(actionId));
-    }
-
-    private String resolveVoteLabel(List<Integer> voteCounts, int index, boolean resolvedState, int emphasisIndex) {
-        int votes = index < voteCounts.size() ? voteCounts.get(index) : 0;
-        if (resolvedState && index == emphasisIndex) {
-            return "확정됨  |  테스트 득표 " + votes;
-        }
-        if (index == emphasisIndex) {
-            return "현재 선두  |  테스트 득표 " + votes;
-        }
-        return "테스트 득표 " + votes;
-    }
-
-    private PartyAction resolveResolvedChoiceAction(int choiceIndex) {
-        return stateMachine.getResolvedChoiceAction(choiceIndex);
-    }
-
-    private String resolveCommandHint() {
-        if (stateMachine.isChoiceInputOpen()) {
-            return "현재 입력: 1 2 3 으로 선택지 득표, P 로 오늘의 픽";
-        }
-        if (stateMachine.isTroubleInputOpen()) {
-            return "현재 입력: V 로 대응 1회, E 로 긴급 정리 콜";
-        }
-        if (stateMachine.isFinaleInputOpen()) {
-            return "현재 입력: C 로 응원 추가, F 로 피날레 발동";
-        }
-        if (stateMachine.getState() == GameState.ROUND_COMPLETE) {
-            return "현재 입력: H 로 저장 후 허브 복귀, R 또는 SPACE 로 다시 시작";
-        }
-        return "현재 입력: SPACE 로 라운드 시작";
-    }
-
-    private String resolveGrade(int score) {
-        if (score >= 28) {
-            return "S";
-        }
-        if (score >= 22) {
-            return "A";
-        }
-        if (score >= 16) {
-            return "B";
-        }
-        if (score >= 10) {
-            return "C";
-        }
-        return "D";
-    }
-
-    private String resolveGradeLine(String grade) {
-        return switch (grade) {
-            case "S" -> "모두가 호흡을 맞춰 최고의 생일 무대를 완성했습니다.";
-            case "A" -> "조금 정신없었지만 아주 좋은 생일 방송으로 마무리됐습니다.";
-            case "B" -> "중간 위기는 있었지만 끝은 충분히 해피엔딩이었습니다.";
-            case "C" -> "꽤 부산스러웠지만 그래서 더 기억에 남는 파티였습니다.";
-            default -> "사고는 많았지만 방송은 남았습니다. 완전히 밈이 된 생일 파티입니다.";
+    private String resolvePhaseDescription() {
+        return switch (phase) {
+            case READY -> "방송 시작 직전 책상이 아직 덜 맞춰져 있습니다. 마이크, 조명, 메모, 무드를 순서대로 정리하세요.";
+            case ACTIVE -> "민트 구간에 맞춘 뒤 SPACE로 고정하면 됩니다. 네 항목을 빠르게 정리할수록 점수가 올라갑니다.";
+            case RESULT -> "책상 정리가 끝났습니다. 저장하고 허브로 돌아가면 다음 챕터가 열립니다.";
         };
     }
 
-    private String readableActionTitle(PartyAction action, String fallback) {
-        return action == null ? fallback : action.title();
+    private String resolvePhaseHint() {
+        return switch (phase) {
+            case READY -> "SPACE 또는 ENTER로 시작";
+            case ACTIVE -> "UP / DOWN 선택, LEFT / RIGHT 조정, SPACE 확정";
+            case RESULT -> "H 또는 ENTER 저장, R 재시작, ESC 허브 복귀";
+        };
+    }
+
+    private String resolveCommandHint() {
+        return switch (phase) {
+            case READY -> "SPACE / ENTER 시작 | ESC 허브 복귀";
+            case ACTIVE -> "UP / DOWN 작업 선택 | LEFT / RIGHT 값 조정 | SPACE 확정 | ESC 허브 복귀";
+            case RESULT -> "H / ENTER 저장 | R 재시작 | ESC 허브 복귀";
+        };
+    }
+
+    private String resolveLiveHint() {
+        return switch (phase) {
+            case READY -> "SPACE 시작";
+            case ACTIVE -> "UP DOWN 선택  LEFT RIGHT 조정  SPACE 확정";
+            case RESULT -> "H 저장  R 재시작  ESC 복귀";
+        };
+    }
+
+    private int getConfirmedCount() {
+        int count = 0;
+        for (boolean value : confirmed) {
+            if (value) {
+                count += 1;
+            }
+        }
+        return count;
     }
 
     private void drawPanel(float x, float y, float width, float height, Color color) {
@@ -639,7 +514,15 @@ public final class PartyPanicScreen extends ScreenAdapter {
     }
 
     private float estimateWidth(String text, float scale) {
-        return text.length() * 11.6f * scale;
+        return text.length() * 11.4f * scale;
+    }
+
+    private void drawLine(String text, float x, float y, float scale, Color color) {
+        font.getData().setScale(scale);
+        font.setColor(color);
+        font.draw(batch, text, x, y);
+        font.setColor(TEXT_PRIMARY);
+        font.getData().setScale(1f);
     }
 
     private String buildFontCharacters() {
@@ -647,85 +530,52 @@ public final class PartyPanicScreen extends ScreenAdapter {
         appendCharacters(characters, FreeTypeFontGenerator.DEFAULT_CHARS);
 
         for (String text : List.of(
-                "방송 책상 미니게임",
-                "남은 시간 %.1f초",
-                "참여자 %d명  |  점수 %d  |  피날레 %d/%d",
-                "운영 패널",
-                "상태 ",
-                "방송 무드 ",
-                "중반 이벤트 ",
-                "라운드 시작 / 재시작",
-                "선택지 테스트 득표",
-                "오늘의 픽",
-                "사고 대응 1회",
-                "긴급 정리 콜",
-                "피날레 응원",
-                "생일 소원 발동",
-                "결과 후 다시 시작",
-                "결과 저장 후 허브 복귀",
-                "허브 복귀",
-                "요약",
-                "상황: ",
-                "현재 입력: 1 2 3 으로 선택지 득표, P 로 오늘의 픽",
-                "현재 입력: V 로 대응 1회, E 로 긴급 정리 콜",
-                "현재 입력: C 로 응원 추가, F 로 피날레 발동",
-                "현재 입력: H 로 저장 후 허브 복귀, R 또는 SPACE 로 다시 시작",
-                "현재 입력: SPACE 로 라운드 시작",
-                "방송 책상 미니게임",
-                "SPACE로 라운드를 시작하면 배경 투표 1회, 이벤트 카드 투표 1회, 사고 대응 3회, 피날레 응원 1회가 이어집니다.",
-                "라운드 완료 후 H를 누르면 허브로 돌아가며 결과가 저장됩니다. ESC는 언제든 허브 복귀입니다.",
-                "현재 최고 점수 ",
-                "허브로 복귀했습니다. H로 돌아가면 결과를 저장할 수 있습니다.",
-                "선두 선택은 분홍 테두리로 강조됩니다. 숫자 1 2 3으로 테스트 득표, P로 오늘의 픽을 넣을 수 있습니다.",
-                "현재 선두  |  테스트 득표 ",
-                "확정됨  |  테스트 득표 ",
-                "V로 대응 1, E로 긴급 정리 콜 2를 추가합니다.",
-                "선택된 이벤트",
-                "현재 대응 ",
-                " / ",
-                "피날레 응원 ",
-                "생일 파티 결과",
-                "최종 점수 ",
-                "확정된 배경",
-                "같은 VTuber 세계관과 방송 무드",
-                "기본 무대",
-                "미정",
-                "모두가 호흡을 맞춰 최고의 생일 무대를 완성했습니다.",
-                "조금 정신없었지만 아주 좋은 생일 방송으로 마무리됐습니다.",
-                "중간 위기는 있었지만 끝은 충분히 해피엔딩이었습니다.",
-                "꽤 부산스러웠지만 그래서 더 기억에 남는 파티였습니다.",
-                "사고는 많았지만 방송은 남았습니다. 완전히 밈이 된 생일 파티입니다.",
-                "S",
-                "A",
-                "B",
-                "C",
-                "D"
+                "방송 책상 정리",
+                "책상 상태",
+                "단계",
+                "최고 점수",
+                "남은 시간",
+                "완료 진행",
+                "선택 중",
+                "안내",
+                "결과 점수",
+                "SPACE를 눌러 책상 정리를 시작하세요.",
+                "SPACE를 눌러 책상 정리를 다시 시작하세요.",
+                "첫 작업부터 맞춰 보자.",
+                "좋아. 적어도 방송은 시작할 수 있겠다.",
+                "시간이 다 됐다. 그래도 시작할 정도는 정리됐다.",
+                "민트 구간에 맞춘 뒤 SPACE로 고정하면 됩니다. 네 항목을 빠르게 정리할수록 점수가 올라갑니다.",
+                "방송 시작 직전 책상이 아직 덜 맞춰져 있습니다. 마이크, 조명, 메모, 무드를 순서대로 정리하세요.",
+                "책상 정리가 끝났습니다. 저장하고 허브로 돌아가면 다음 챕터가 열립니다.",
+                "SPACE 또는 ENTER로 시작",
+                "UP / DOWN 선택, LEFT / RIGHT 조정, SPACE 확정",
+                "H 또는 ENTER 저장, R 재시작, ESC 허브 복귀",
+                "SPACE / ENTER 시작 | ESC 허브 복귀",
+                "UP / DOWN 작업 선택 | LEFT / RIGHT 값 조정 | SPACE 확정 | ESC 허브 복귀",
+                "H / ENTER 저장 | R 재시작 | ESC 허브 복귀",
+                "SPACE 시작",
+                "UP DOWN 선택  LEFT RIGHT 조정  SPACE 확정",
+                "H 저장  R 재시작  ESC 복귀",
+                "수치를 조정했습니다.",
+                "은 이미 고정했습니다.",
+                "은 이미 완료했습니다.",
+                "이 아직 맞지 않습니다. 민트 구간에 맞춰 주세요.",
+                "고정 완료",
+                "확정 가능",
+                "조정 필요",
+                "항목",
+                "방송 책상에서 허브로 복귀했습니다.",
+                "UP / DOWN 으로 작업 선택, LEFT / RIGHT 로 수치 조정, SPACE 로 확정합니다.",
+                "결과 화면에서는 H 또는 ENTER로 저장, R로 재시작합니다."
         )) {
             appendCharacters(characters, text);
         }
 
-        GameContent content = GameContent.defaultContent();
-        for (ChoiceSet choiceSet : content.choiceSets()) {
-            appendCharacters(characters, choiceSet.id());
-            appendCharacters(characters, choiceSet.prompt());
-            appendCharacters(characters, choiceSet.roundLabel());
-            appendCharacters(characters, choiceSet.resolutionText());
-
-            for (PartyAction action : choiceSet.actions()) {
-                appendCharacters(characters, action.id());
-                appendCharacters(characters, action.title());
-                appendCharacters(characters, action.description());
-                appendCharacters(characters, action.chatCommand());
-                appendCharacters(characters, action.streamerNote());
-            }
+        for (String title : TASK_TITLES) {
+            appendCharacters(characters, title);
         }
-
-        for (TroubleEvent troubleEvent : content.troubleEvents()) {
-            appendCharacters(characters, troubleEvent.id());
-            appendCharacters(characters, troubleEvent.title());
-            appendCharacters(characters, troubleEvent.instruction());
-            appendCharacters(characters, troubleEvent.successText());
-            appendCharacters(characters, troubleEvent.failureText());
+        for (String hint : TASK_HINTS) {
+            appendCharacters(characters, hint);
         }
 
         StringBuilder builder = new StringBuilder(characters.size());
@@ -741,18 +591,8 @@ public final class PartyPanicScreen extends ScreenAdapter {
         }
     }
 
-    private void drawLine(String text, float x, float y, float scale, Color color) {
-        font.getData().setScale(scale);
-        font.setColor(color);
-        font.draw(batch, text, x, y);
-        font.setColor(TEXT_PRIMARY);
-        font.getData().setScale(1f);
-    }
-
-    private String nextSyntheticViewerId() {
-        String viewerId = "viewer-" + syntheticViewerSequence;
-        syntheticViewerSequence += 1;
-        return viewerId;
+    private boolean showsOperationalUi() {
+        return game.getConfig().showsOperationalUi();
     }
 
     @Override
@@ -760,16 +600,13 @@ public final class PartyPanicScreen extends ScreenAdapter {
         batch.dispose();
         font.dispose();
         pixelTexture.dispose();
+        backgroundTexture.dispose();
         hostTexture.dispose();
-        resultBackgroundTexture.dispose();
-        for (Texture texture : stageTextures.values()) {
-            texture.dispose();
-        }
-        for (Texture texture : choiceCardTextures.values()) {
-            texture.dispose();
-        }
-        for (Texture texture : troubleCardTextures.values()) {
-            texture.dispose();
-        }
+    }
+
+    private enum Phase {
+        READY,
+        ACTIVE,
+        RESULT
     }
 }

@@ -80,8 +80,12 @@ public final class PhotoTimeScreen extends ScreenAdapter {
         drawBackdrop();
         drawFrames();
         drawPhotoStage();
-        drawStatusPanel();
-        drawCommandBar();
+        if (showsOperationalUi()) {
+            drawStatusPanel();
+            drawCommandBar();
+        } else {
+            drawLiveHud();
+        }
         batch.end();
     }
 
@@ -137,11 +141,13 @@ public final class PhotoTimeScreen extends ScreenAdapter {
         drawPanel(STAGE_X, STAGE_Y, STAGE_WIDTH, STAGE_HEIGHT, new Color(0.03f, 0.02f, 0.03f, 0.14f));
         drawPanelOutline(STAGE_X - 1f, STAGE_Y - 1f, STAGE_WIDTH + 2f, STAGE_HEIGHT + 2f, BORDER_COLOR);
 
-        drawPanel(PANEL_X, PANEL_Y, PANEL_WIDTH, PANEL_HEIGHT, PANEL_STRONG);
-        drawPanelOutline(PANEL_X, PANEL_Y, PANEL_WIDTH, PANEL_HEIGHT, BORDER_COLOR);
+        if (showsOperationalUi()) {
+            drawPanel(PANEL_X, PANEL_Y, PANEL_WIDTH, PANEL_HEIGHT, PANEL_STRONG);
+            drawPanelOutline(PANEL_X, PANEL_Y, PANEL_WIDTH, PANEL_HEIGHT, BORDER_COLOR);
 
-        drawPanel(COMMAND_X, COMMAND_Y, COMMAND_WIDTH, COMMAND_HEIGHT, PANEL_STRONG);
-        drawPanelOutline(COMMAND_X, COMMAND_Y, COMMAND_WIDTH, COMMAND_HEIGHT, BORDER_COLOR);
+            drawPanel(COMMAND_X, COMMAND_Y, COMMAND_WIDTH, COMMAND_HEIGHT, PANEL_STRONG);
+            drawPanelOutline(COMMAND_X, COMMAND_Y, COMMAND_WIDTH, COMMAND_HEIGHT, BORDER_COLOR);
+        }
     }
 
     private void drawPhotoStage() {
@@ -248,6 +254,40 @@ public final class PhotoTimeScreen extends ScreenAdapter {
         }
     }
 
+    private void drawLiveHud() {
+        float chipX = WINDOW_WIDTH - 250f;
+        float chipY = WINDOW_HEIGHT - 126f;
+        float chipWidth = 194f;
+        float chipHeight = 92f;
+        float guideX = STAGE_X + 28f;
+        float guideY = STAGE_Y + 24f;
+        float guideWidth = 580f;
+        float guideHeight = 84f;
+
+        drawPanel(chipX, chipY, chipWidth, chipHeight, PANEL_STRONG);
+        drawPanelOutline(chipX, chipY, chipWidth, chipHeight, BORDER_COLOR);
+        drawLine(String.format("%.1f초", stateMachine.getSecondsRemaining()), chipX + 16f, chipY + 58f, 0.94f, TEXT_PRIMARY);
+        drawLine(stateMachine.getCapturedShots() + " / " + PhotoTimeStateMachine.TOTAL_SHOTS + " 컷", chipX + 16f, chipY + 28f, 0.82f, TEXT_MINT);
+
+        drawPanel(guideX, guideY, guideWidth, guideHeight, PANEL_COLOR);
+        drawPanelOutline(guideX, guideY, guideWidth, guideHeight, BORDER_COLOR);
+        drawParagraph(resolvePhaseDescription(), guideX + 18f, guideY + 50f, guideWidth - 36f, 0.82f, TEXT_PRIMARY);
+        drawLine(resolveLiveHint(), guideX + 18f, guideY + 20f, 0.76f, TEXT_MUTED);
+
+        if (!stateMachine.isResult()) {
+            return;
+        }
+
+        float resultWidth = 240f;
+        float resultHeight = 118f;
+        float resultX = STAGE_X + ((STAGE_WIDTH - resultWidth) * 0.5f);
+        float resultY = STAGE_Y + 36f;
+        drawPanel(resultX, resultY, resultWidth, resultHeight, PANEL_STRONG);
+        drawPanelOutline(resultX, resultY, resultWidth, resultHeight, HIGHLIGHT_COLOR);
+        drawLine("결과 점수", resultX + 22f, resultY + 84f, 0.92f, TEXT_ACCENT);
+        drawLine(String.valueOf(stateMachine.getFinalScore()), resultX + 22f, resultY + 34f, 1.86f, TEXT_MINT);
+    }
+
     private void drawCommandBar() {
         drawLine(resolveCommandHint(), COMMAND_X + 22f, COMMAND_Y + 38f, 0.92f, TEXT_PRIMARY);
     }
@@ -273,6 +313,14 @@ public final class PhotoTimeScreen extends ScreenAdapter {
             case READY -> "현재 입력: SPACE 로 시작, ESC 로 허브 복귀";
             case ACTIVE -> "현재 입력: 방향키/WASD 로 이동, SPACE 로 촬영, ESC 로 허브 복귀";
             case RESULT -> "현재 입력: H 로 저장 후 허브 복귀, R 또는 SPACE 로 다시 시작, ESC 로 허브 복귀";
+        };
+    }
+
+    private String resolveLiveHint() {
+        return switch (stateMachine.getPhase()) {
+            case READY -> "SPACE 시작";
+            case ACTIVE -> "방향키 이동  SPACE 촬영";
+            case RESULT -> "H 저장  R 재시작  ESC 복귀";
         };
     }
 
@@ -378,6 +426,9 @@ public final class PhotoTimeScreen extends ScreenAdapter {
                 "현재 입력: SPACE 로 시작, ESC 로 허브 복귀",
                 "현재 입력: 방향키/WASD 로 이동, SPACE 로 촬영, ESC 로 허브 복귀",
                 "현재 입력: H 로 저장 후 허브 복귀, R 또는 SPACE 로 다시 시작, ESC 로 허브 복귀",
+                "SPACE 시작",
+                "방향키 이동  SPACE 촬영",
+                "H 저장  R 재시작  ESC 복귀",
                 "이번 포토 무드",
                 "포토존에서 허브로 복귀했습니다.",
                 "준비",
@@ -405,6 +456,10 @@ public final class PhotoTimeScreen extends ScreenAdapter {
         for (int index = 0; index < text.length(); index += 1) {
             characters.add(text.charAt(index));
         }
+    }
+
+    private boolean showsOperationalUi() {
+        return game.getConfig().showsOperationalUi();
     }
 
     @Override

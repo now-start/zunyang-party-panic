@@ -79,8 +79,12 @@ public final class CakeTableScreen extends ScreenAdapter {
         drawBackdrop();
         drawFrames();
         drawCakeStage();
-        drawOperatorPanel();
-        drawCommandBar();
+        if (showsOperationalUi()) {
+            drawOperatorPanel();
+            drawCommandBar();
+        } else {
+            drawLiveHud();
+        }
         batch.end();
     }
 
@@ -130,11 +134,13 @@ public final class CakeTableScreen extends ScreenAdapter {
         drawPanel(STAGE_X, STAGE_Y, STAGE_WIDTH, STAGE_HEIGHT, new Color(0.03f, 0.02f, 0.03f, 0.18f));
         drawPanelOutline(STAGE_X - 1f, STAGE_Y - 1f, STAGE_WIDTH + 2f, STAGE_HEIGHT + 2f, BORDER_COLOR);
 
-        drawPanel(PANEL_X, PANEL_Y, PANEL_WIDTH, PANEL_HEIGHT, PANEL_STRONG);
-        drawPanelOutline(PANEL_X, PANEL_Y, PANEL_WIDTH, PANEL_HEIGHT, BORDER_COLOR);
+        if (showsOperationalUi()) {
+            drawPanel(PANEL_X, PANEL_Y, PANEL_WIDTH, PANEL_HEIGHT, PANEL_STRONG);
+            drawPanelOutline(PANEL_X, PANEL_Y, PANEL_WIDTH, PANEL_HEIGHT, BORDER_COLOR);
 
-        drawPanel(COMMAND_X, COMMAND_Y, COMMAND_WIDTH, COMMAND_HEIGHT, PANEL_STRONG);
-        drawPanelOutline(COMMAND_X, COMMAND_Y, COMMAND_WIDTH, COMMAND_HEIGHT, BORDER_COLOR);
+            drawPanel(COMMAND_X, COMMAND_Y, COMMAND_WIDTH, COMMAND_HEIGHT, PANEL_STRONG);
+            drawPanelOutline(COMMAND_X, COMMAND_Y, COMMAND_WIDTH, COMMAND_HEIGHT, BORDER_COLOR);
+        }
     }
 
     private void drawCakeStage() {
@@ -237,6 +243,40 @@ public final class CakeTableScreen extends ScreenAdapter {
         }
     }
 
+    private void drawLiveHud() {
+        float chipX = WINDOW_WIDTH - 250f;
+        float chipY = WINDOW_HEIGHT - 126f;
+        float chipWidth = 194f;
+        float chipHeight = 92f;
+        float guideX = STAGE_X + 28f;
+        float guideY = STAGE_Y + 24f;
+        float guideWidth = 560f;
+        float guideHeight = 84f;
+
+        drawPanel(chipX, chipY, chipWidth, chipHeight, PANEL_STRONG);
+        drawPanelOutline(chipX, chipY, chipWidth, chipHeight, BORDER_COLOR);
+        drawLine(String.format("안정 %.0f", stateMachine.getStability()), chipX + 16f, chipY + 58f, 0.92f, TEXT_PRIMARY);
+        drawLine(String.format("시간 %.1f초", stateMachine.getSecondsRemaining()), chipX + 16f, chipY + 28f, 0.82f, TEXT_MINT);
+
+        drawPanel(guideX, guideY, guideWidth, guideHeight, PANEL_COLOR);
+        drawPanelOutline(guideX, guideY, guideWidth, guideHeight, BORDER_COLOR);
+        drawParagraph(resolvePhaseDescription(), guideX + 18f, guideY + 50f, guideWidth - 36f, 0.82f, TEXT_PRIMARY);
+        drawLine(resolveLiveHint(), guideX + 18f, guideY + 20f, 0.76f, TEXT_MUTED);
+
+        if (!stateMachine.isResult()) {
+            return;
+        }
+
+        float resultWidth = 240f;
+        float resultHeight = 118f;
+        float resultX = STAGE_X + ((STAGE_WIDTH - resultWidth) * 0.5f);
+        float resultY = STAGE_Y + 36f;
+        drawPanel(resultX, resultY, resultWidth, resultHeight, PANEL_STRONG);
+        drawPanelOutline(resultX, resultY, resultWidth, resultHeight, HIGHLIGHT_COLOR);
+        drawLine("결과 점수", resultX + 22f, resultY + 84f, 0.92f, TEXT_ACCENT);
+        drawLine(String.valueOf(stateMachine.getFinalScore()), resultX + 22f, resultY + 34f, 1.86f, TEXT_MINT);
+    }
+
     private void drawCommandBar() {
         drawLine(resolveCommandHint(), COMMAND_X + 22f, COMMAND_Y + 38f, 0.92f, TEXT_PRIMARY);
     }
@@ -262,6 +302,14 @@ public final class CakeTableScreen extends ScreenAdapter {
             case READY -> "현재 입력: SPACE 로 시작, ESC 로 허브 복귀";
             case ACTIVE -> "현재 입력: LEFT/A, RIGHT/D 로 조정, S/아래 방향키로 급정리, ESC 로 허브 복귀";
             case RESULT -> "현재 입력: H 로 저장 후 허브 복귀, R 또는 SPACE 로 다시 시작, ESC 로 허브 복귀";
+        };
+    }
+
+    private String resolveLiveHint() {
+        return switch (stateMachine.getPhase()) {
+            case READY -> "SPACE 시작";
+            case ACTIVE -> "LEFT RIGHT 균형  S 급정리";
+            case RESULT -> "H 저장  R 재시작  ESC 복귀";
         };
     }
 
@@ -366,6 +414,11 @@ public final class CakeTableScreen extends ScreenAdapter {
                 "현재 입력: SPACE 로 시작, ESC 로 허브 복귀",
                 "현재 입력: LEFT/A, RIGHT/D 로 조정, S/아래 방향키로 급정리, ESC 로 허브 복귀",
                 "현재 입력: H 로 저장 후 허브 복귀, R 또는 SPACE 로 다시 시작, ESC 로 허브 복귀",
+                "SPACE 시작",
+                "LEFT RIGHT 균형  S 급정리",
+                "H 저장  R 재시작  ESC 복귀",
+                "안정 ",
+                "시간 ",
                 "기울기",
                 "좌 %.0f  |  우 %.0f",
                 "케이크 테이블에서 허브로 복귀했습니다.",
@@ -389,6 +442,10 @@ public final class CakeTableScreen extends ScreenAdapter {
         for (int index = 0; index < text.length(); index += 1) {
             characters.add(text.charAt(index));
         }
+    }
+
+    private boolean showsOperationalUi() {
+        return game.getConfig().showsOperationalUi();
     }
 
     @Override

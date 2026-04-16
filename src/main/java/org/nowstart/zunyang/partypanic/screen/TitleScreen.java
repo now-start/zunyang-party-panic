@@ -81,6 +81,7 @@ public final class TitleScreen extends ScreenAdapter {
     }
 
     private void drawTitleCard() {
+        boolean operationalUi = game.getConfig().showsOperationalUi();
         float cardX = 86f;
         float cardY = 168f;
         float cardWidth = 652f;
@@ -91,8 +92,17 @@ public final class TitleScreen extends ScreenAdapter {
 
         drawLine("zunyang-party-panic", cardX + 34f, cardY + cardHeight - 38f, 1.58f, TEXT_ACCENT);
         drawLine("치즈냥 생일 팬게임", cardX + 34f, cardY + cardHeight - 86f, 1.16f, TEXT_MINT);
-        drawParagraph("쯔꾸르풍 준비방을 돌아다니며 미니게임을 열고, 오늘의 생일 방송과 파티를 완성합니다.", cardX + 34f, cardY + 278f, cardWidth - 68f, 1.02f, TEXT_PRIMARY);
-        drawParagraph("현재 구현: 허브, 방송 책상 미니게임, 케이크 테이블 미니게임.", cardX + 34f, cardY + 220f, cardWidth - 68f, 0.92f, TEXT_MUTED);
+        drawParagraph("치즈냥이 직접 생일 방송 준비방을 돌아다니며 오늘의 방송 톤과 남아 있던 기억 조각을 정리하는 쯔꾸르풍 팬게임입니다.", cardX + 34f, cardY + 278f, cardWidth - 68f, 0.98f, TEXT_PRIMARY);
+        drawParagraph(
+                operationalUi
+                        ? "현재 test 모드: 운영 패널과 검증용 정보가 함께 표시됩니다."
+                        : "현재 live 모드: 실제 플레이 화면 기준으로 최소한의 UI만 표시됩니다.",
+                cardX + 34f,
+                cardY + 214f,
+                cardWidth - 68f,
+                0.88f,
+                TEXT_MUTED
+        );
 
         float buttonX = cardX + 34f;
         float buttonY = cardY + 92f;
@@ -188,8 +198,9 @@ public final class TitleScreen extends ScreenAdapter {
         for (String text : List.of(
                 "zunyang-party-panic",
                 "치즈냥 생일 팬게임",
-                "쯔꾸르풍 준비방을 돌아다니며 미니게임을 열고, 오늘의 생일 방송과 파티를 완성합니다.",
-                "현재 구현: 허브, 방송 책상 미니게임, 케이크 테이블 미니게임.",
+                "치즈냥이 직접 생일 방송 준비방을 돌아다니며 오늘의 방송 톤과 남아 있던 기억 조각을 정리하는 쯔꾸르풍 팬게임입니다.",
+                "현재 test 모드: 운영 패널과 검증용 정보가 함께 표시됩니다.",
+                "현재 live 모드: 실제 플레이 화면 기준으로 최소한의 UI만 표시됩니다.",
                 "ENTER / SPACE  시작",
                 "ESC / Q  종료"
         )) {
