@@ -2,21 +2,23 @@ package org.nowstart.zunyang.partypanic;
 
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Screen;
-import org.nowstart.zunyang.partypanic.config.GameConfig;
-import org.nowstart.zunyang.partypanic.config.GameConfigLoader;
-import org.nowstart.zunyang.partypanic.screen.CakeTableScreen;
-import org.nowstart.zunyang.partypanic.screen.HubScreen;
-import org.nowstart.zunyang.partypanic.screen.PartyPanicScreen;
-import org.nowstart.zunyang.partypanic.screen.PhotoTimeScreen;
-import org.nowstart.zunyang.partypanic.screen.StorySequenceScreen;
-import org.nowstart.zunyang.partypanic.screen.TitleScreen;
-import org.nowstart.zunyang.partypanic.world.GameProgress;
+import org.nowstart.zunyang.partypanic.application.port.GameNavigator;
+import org.nowstart.zunyang.partypanic.application.story.StoryChapterFactory;
+import org.nowstart.zunyang.partypanic.domain.activity.ActivityId;
+import org.nowstart.zunyang.partypanic.domain.progress.GameProgress;
+import org.nowstart.zunyang.partypanic.infrastructure.config.GameConfig;
+import org.nowstart.zunyang.partypanic.infrastructure.config.GameConfigLoader;
+import org.nowstart.zunyang.partypanic.presentation.screen.CakeTableScreen;
+import org.nowstart.zunyang.partypanic.presentation.screen.HubScreen;
+import org.nowstart.zunyang.partypanic.presentation.screen.PartyPanicScreen;
+import org.nowstart.zunyang.partypanic.presentation.screen.PhotoTimeScreen;
+import org.nowstart.zunyang.partypanic.presentation.screen.StorySequenceScreen;
+import org.nowstart.zunyang.partypanic.presentation.screen.TitleScreen;
 
-import java.util.List;
-
-public final class PartyPanicGame extends Game {
+public final class PartyPanicGame extends Game implements GameNavigator {
     private final GameConfig config;
     private final GameProgress progress = new GameProgress();
+    private final StoryChapterFactory storyChapterFactory = new StoryChapterFactory();
 
     public PartyPanicGame() {
         this(GameConfigLoader.load());
@@ -31,120 +33,40 @@ public final class PartyPanicGame extends Game {
         showTitle();
     }
 
+    @Override
+    public boolean showsOperationalUi() {
+        return config.showsOperationalUi();
+    }
+
+    @Override
     public void showTitle() {
         switchTo(new TitleScreen(this));
     }
 
-    public void showHub() {
-        showHub(null);
-    }
-
+    @Override
     public void showHub(String notice) {
         switchTo(new HubScreen(this, progress, notice));
     }
 
-    public void showBroadcastDeskMinigame() {
-        switchTo(new PartyPanicScreen(this, progress));
+    @Override
+    public void openActivity(ActivityId activityId) {
+        switch (activityId) {
+            case BROADCAST_DESK -> switchTo(new PartyPanicScreen(this, progress));
+            case CAKE_TABLE -> switchTo(new CakeTableScreen(this, progress));
+            case PHOTO_TIME -> switchTo(new PhotoTimeScreen(this, progress));
+            case STORAGE_ROOM, BACKSTAGE, FAN_LETTER, FINALE_STAGE ->
+                    switchTo(new StorySequenceScreen(this, progress, storyChapterFactory.create(activityId, progress)));
+        }
     }
 
-    public void finishBroadcastDeskMinigame(int score) {
-        progress.recordScore(GameProgress.BROADCAST_DESK, score);
-        showHub("방송 책상 정리 완료. 램프가 켜졌습니다. 최고 점수 " + progress.getBestScore(GameProgress.BROADCAST_DESK) + "점");
+    @Override
+    public void completeScoredActivity(ActivityId activityId, int score) {
+        progress.recordScore(activityId, score);
+        showHub(resolveScoredCompletionNotice(activityId));
     }
 
-    public void showStorageRoomScene() {
-        switchTo(new StorySequenceScreen(
-                this,
-                progress,
-                GameProgress.STORAGE_ROOM,
-                "장식 창고",
-                "오늘 쓸 소품을 고르는 파트",
-                "assets/images/backgrounds/cake-rush-stage.png",
-                "장식 창고에서 허브로 복귀했습니다.",
-                "장식 창고 정리 완료. 케이크 테이블을 만질 수 있습니다.",
-                List.of(
-                        "장식 창고 문을 열자 리본이랑 전구 상자가 한꺼번에 보였다. 오늘 쓸 것만 고르면 된다.",
-                        "안 쓰던 상자까지 전부 꺼내 놓으면 끝이 없다. 지금 필요한 건 케이크랑 포토존, 그리고 마지막 무대에 둘 것들이다.",
-                        "좋아. 리본, 초, 작은 소품은 챙겼다. 이제 오늘 쓸 건 어느 정도 손에 잡힌다."
-                )
-        ));
-    }
-
-    public void showCakeTableMinigame() {
-        switchTo(new CakeTableScreen(this, progress));
-    }
-
-    public void finishCakeTableMinigame(int score) {
-        progress.recordScore(GameProgress.CAKE_TABLE, score);
-        showHub("케이크 테이블 정리 완료. 오늘의 중심 장면이 잡혔습니다. 최고 점수 " + progress.getBestScore(GameProgress.CAKE_TABLE) + "점");
-    }
-
-    public void showPhotoTimeMinigame() {
-        switchTo(new PhotoTimeScreen(this, progress));
-    }
-
-    public void finishPhotoTimeMinigame(int score) {
-        progress.recordScore(GameProgress.PHOTO_TIME, score);
-        showHub("포토존 촬영 완료. 남길 장면이 생겼습니다. 최고 점수 " + progress.getBestScore(GameProgress.PHOTO_TIME) + "점");
-    }
-
-    public void showBackstageScene() {
-        switchTo(new StorySequenceScreen(
-                this,
-                progress,
-                GameProgress.BACKSTAGE,
-                "백스테이지 복도",
-                "준비에서 기억으로 넘어가는 구간",
-                "assets/images/backgrounds/mint-cats-stage.png",
-                "백스테이지 복도에서 허브로 복귀했습니다.",
-                "복도에서 기억 조각을 확인했습니다. 팬레터 우편함이 열렸습니다.",
-                List.of(
-                        "복도 조명이 약해서 그런지, 여기만 들어오면 방송 시작 직전보다 더 조용해진다.",
-                        "안 버리고 남겨 둔 상자랑 메모가 꽤 많다. 완전한 기록은 아니어도 이런 조각은 오래 남는다.",
-                        "오늘이 갑자기 생긴 건 아니었다는 건 알겠다. 이제 팬레터 우편함도 열어 봐야겠다."
-                )
-        ));
-    }
-
-    public void showFanLetterScene() {
-        switchTo(new StorySequenceScreen(
-                this,
-                progress,
-                GameProgress.FAN_LETTER,
-                "팬레터 우편함",
-                "예전 편지를 다시 읽는 파트",
-                "assets/images/backgrounds/desk-party-stage.png",
-                "팬레터 우편함에서 허브로 복귀했습니다.",
-                "팬레터를 확인했습니다. 마지막 무대 문이 열렸습니다.",
-                List.of(
-                        "여긴 결국 보게 되는구나. 지금 열면 여러 생각이 들 것 같긴 한데, 방송 켜기 전에 한 번은 보고 가야 할 것 같기도 하다.",
-                        "짧은 문장인데도 오래 남는 말이 있다. 늘 웃게 해 줘서 고마워요. 이번 생일도 따뜻한 하루였으면 좋겠어요.",
-                        "예전 생일 방송도 아직 기억하고 있어요. 오늘만큼은 누구보다 많이 축하받았으면 좋겠어요.",
-                        "읽기 전이랑 읽고 난 뒤 분위기가 다르다. 응. 이제 방송 켜기 전에 보고 갈 건 다 본 것 같다."
-                )
-        ));
-    }
-
-    public void showFinaleStage() {
-        switchTo(new StorySequenceScreen(
-                this,
-                progress,
-                GameProgress.FINALE_STAGE,
-                "생일 방송 무대",
-                progress.getEndingTitle() + " 예정",
-                "assets/images/backgrounds/finale-stage.png",
-                "생일 방송 무대에서 허브로 복귀했습니다.",
-                progress.getEndingTitle() + " 샘플 엔딩을 확인했습니다. 준비방에서 다시 둘러볼 수 있습니다.",
-                List.of(
-                        "마지막 문이 열리자 준비방에서 만졌던 것들이 한 장면으로 모인다.",
-                        "책상도, 케이크도, 포토존도 이제는 대충 임시로 놓인 것 같지 않다.",
-                        "남아 있던 장면도 있었고, 남아 있던 말도 있었다. 그래서 지금 여기까지 이어진 거겠지.",
-                        progress.getEndingLine() + " 좋아. 이제는 시작할 수 있겠다."
-                )
-        ));
-    }
-
-    public void finishStoryChapter(String activityId, String notice) {
+    @Override
+    public void completeStoryActivity(ActivityId activityId, String notice) {
         progress.markCompleted(activityId);
         showHub(notice);
     }
@@ -155,6 +77,18 @@ public final class PartyPanicGame extends Game {
 
     public GameConfig getConfig() {
         return config;
+    }
+
+    private String resolveScoredCompletionNotice(ActivityId activityId) {
+        return switch (activityId) {
+            case BROADCAST_DESK ->
+                    "방송 책상 정리 완료. 램프가 켜졌습니다. 최고 점수 " + progress.getBestScore(ActivityId.BROADCAST_DESK) + "점";
+            case CAKE_TABLE ->
+                    "케이크 테이블 정리 완료. 오늘의 중심 장면이 잡혔습니다. 최고 점수 " + progress.getBestScore(ActivityId.CAKE_TABLE) + "점";
+            case PHOTO_TIME ->
+                    "포토존 촬영 완료. 남길 장면이 생겼습니다. 최고 점수 " + progress.getBestScore(ActivityId.PHOTO_TIME) + "점";
+            default -> throw new IllegalArgumentException("Scored activity not supported: " + activityId);
+        };
     }
 
     private void switchTo(Screen nextScreen) {
