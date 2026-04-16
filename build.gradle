@@ -1,33 +1,42 @@
+plugins {
+    id 'application'
+}
+
 ext {
-    gdxVersion = '1.12.1'
+    gdxVersion = '1.14.0'
+    lwjglVersion = '3.4.0'
     junitVersion = '5.10.2'
 }
 
-allprojects {
-    group = 'org.nowstart'
-    version = '0.0.1-SNAPSHOT'
+group = 'org.nowstart'
+version = '0.0.1-SNAPSHOT'
 
-    repositories {
-        mavenCentral()
+repositories {
+    mavenCentral()
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
     }
 }
 
-subprojects {
-    apply plugin: 'java'
+dependencies {
+    implementation enforcedPlatform("org.lwjgl:lwjgl-bom:${lwjglVersion}")
+    implementation "com.badlogicgames.gdx:gdx-backend-lwjgl3:${gdxVersion}"
+    implementation "com.badlogicgames.gdx:gdx-freetype:${gdxVersion}"
+    runtimeOnly "com.badlogicgames.gdx:gdx-platform:${gdxVersion}:natives-desktop"
+    runtimeOnly "com.badlogicgames.gdx:gdx-freetype-platform:${gdxVersion}:natives-desktop"
 
-    java {
-        toolchain {
-            languageVersion = JavaLanguageVersion.of(17)
-        }
-    }
-
-    tasks.withType(Test).configureEach {
-        useJUnitPlatform()
-    }
+    testImplementation "org.junit.jupiter:junit-jupiter:${junitVersion}"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
 }
 
-tasks.register('runDesktop') {
-    group = 'application'
-    description = 'Runs the LWJGL3 desktop launcher.'
-    dependsOn(':lwjgl3:run')
+application {
+    mainClass = 'org.nowstart.zunyang.partypanic.DesktopLauncher'
+    applicationDefaultJvmArgs = ['--enable-native-access=ALL-UNNAMED']
+}
+
+test {
+    useJUnitPlatform()
 }
