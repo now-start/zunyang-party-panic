@@ -28,7 +28,8 @@ public final class PartyPanicScreen extends ScreenAdapter {
     private final GameProgress progress;
     private final DeskSetupStateMachine stateMachine = new DeskSetupStateMachine();
     private final SpriteBatch batch = new SpriteBatch();
-    private final BitmapFont font;
+    private final BitmapFont bodyFont;
+    private final BitmapFont titleFont;
     private final Texture pixelTexture;
     private final Texture backgroundTexture;
     private final Texture hostTexture;
@@ -37,11 +38,12 @@ public final class PartyPanicScreen extends ScreenAdapter {
     public PartyPanicScreen(GameNavigator navigator, GameProgress progress) {
         this.navigator = navigator;
         this.progress = progress;
-        this.font = ScreenSupport.createFont(buildFontCharacters());
+        this.bodyFont = ScreenSupport.createBodyFont(buildFontCharacters());
+        this.titleFont = ScreenSupport.createTitleFont(buildFontCharacters());
         this.pixelTexture = ScreenSupport.createPixelTexture();
         this.backgroundTexture = ScreenSupport.loadTexture("assets/images/backgrounds/desk-party-stage.png");
         this.hostTexture = ScreenSupport.loadTexture("assets/images/characters/zunyang-birthday-host.png");
-        this.ui = new PixelUiRenderer(batch, font, pixelTexture);
+        this.ui = new PixelUiRenderer(batch, bodyFont, titleFont, pixelTexture);
     }
 
     @Override
@@ -119,7 +121,7 @@ public final class PartyPanicScreen extends ScreenAdapter {
         float hostX = MiniGameLayout.STAGE_X + MiniGameLayout.STAGE_WIDTH - hostWidth - 28f;
         float hostY = MiniGameLayout.STAGE_Y + 46f;
 
-        ui.line("방송 책상 정리", MiniGameLayout.STAGE_X + 24f, MiniGameLayout.STAGE_Y + MiniGameLayout.STAGE_HEIGHT - 18f, 1.22f, MiniGamePalette.TEXT_ACCENT);
+        ui.titleLine("방송 책상 정리", MiniGameLayout.STAGE_X + 24f, MiniGameLayout.STAGE_Y + MiniGameLayout.STAGE_HEIGHT - 18f, 1.22f, MiniGamePalette.TEXT_ACCENT);
         ui.panel(infoX, infoY, infoWidth, infoHeight, MiniGamePalette.PANEL_COLOR);
         ui.panelOutline(infoX, infoY, infoWidth, infoHeight, MiniGamePalette.BORDER_COLOR);
         ui.paragraph(stateMachine.phaseDescription(), infoX + 18f, infoY + 58f, infoWidth - 36f, 0.94f, MiniGamePalette.TEXT_PRIMARY);
@@ -303,7 +305,8 @@ public final class PartyPanicScreen extends ScreenAdapter {
     @Override
     public void dispose() {
         batch.dispose();
-        font.dispose();
+        bodyFont.dispose();
+        titleFont.dispose();
         pixelTexture.dispose();
         backgroundTexture.dispose();
         hostTexture.dispose();

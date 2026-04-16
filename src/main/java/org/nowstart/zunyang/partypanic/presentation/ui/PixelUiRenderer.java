@@ -10,12 +10,18 @@ import java.util.List;
 
 public final class PixelUiRenderer {
     private final SpriteBatch batch;
-    private final BitmapFont font;
+    private final BitmapFont bodyFont;
+    private final BitmapFont titleFont;
     private final Texture pixelTexture;
 
-    public PixelUiRenderer(SpriteBatch batch, BitmapFont font, Texture pixelTexture) {
+    public PixelUiRenderer(SpriteBatch batch, BitmapFont bodyFont, Texture pixelTexture) {
+        this(batch, bodyFont, bodyFont, pixelTexture);
+    }
+
+    public PixelUiRenderer(SpriteBatch batch, BitmapFont bodyFont, BitmapFont titleFont, Texture pixelTexture) {
         this.batch = batch;
-        this.font = font;
+        this.bodyFont = bodyFont;
+        this.titleFont = titleFont;
         this.pixelTexture = pixelTexture;
     }
 
@@ -61,10 +67,11 @@ public final class PixelUiRenderer {
     }
 
     public void line(String text, float x, float y, float scale, Color color) {
-        font.getData().setScale(scale);
-        font.setColor(color);
-        font.draw(batch, text, x, y);
-        font.getData().setScale(1f);
+        drawText(bodyFont, text, x, y, scale, color);
+    }
+
+    public void titleLine(String text, float x, float y, float scale, Color color) {
+        drawText(titleFont, text, x, y, scale, color);
     }
 
     public void paragraph(String text, float x, float y, float width, float scale, Color color) {
@@ -78,6 +85,13 @@ public final class PixelUiRenderer {
 
     public Color withAlpha(Color color, float alpha) {
         return new Color(color.r, color.g, color.b, alpha);
+    }
+
+    private void drawText(BitmapFont font, String text, float x, float y, float scale, Color color) {
+        font.getData().setScale(scale);
+        font.setColor(color);
+        font.draw(batch, text, x, y);
+        font.getData().setScale(1f);
     }
 
     private List<String> wrapText(String text, float width, float scale) {

@@ -44,7 +44,8 @@ public final class StorySequenceScreen extends ScreenAdapter {
     private final String completionNotice;
     private final List<String> pages;
     private final SpriteBatch batch = new SpriteBatch();
-    private final BitmapFont font;
+    private final BitmapFont bodyFont;
+    private final BitmapFont titleFont;
     private final Texture pixelTexture;
     private final Texture backgroundTexture;
     private final Texture portraitTexture;
@@ -68,11 +69,12 @@ public final class StorySequenceScreen extends ScreenAdapter {
         this.returnNotice = chapter.returnNotice();
         this.completionNotice = chapter.completionNotice();
         this.pages = List.copyOf(chapter.pages());
-        this.font = ScreenSupport.createFont(buildFontCharacters());
+        this.bodyFont = ScreenSupport.createBodyFont(buildFontCharacters());
+        this.titleFont = ScreenSupport.createTitleFont(buildFontCharacters());
         this.pixelTexture = ScreenSupport.createPixelTexture();
         this.backgroundTexture = ScreenSupport.loadTexture(chapter.backgroundPath());
         this.portraitTexture = ScreenSupport.loadTexture("assets/images/characters/zunyang-birthday-host.png");
-        this.ui = new PixelUiRenderer(batch, font, pixelTexture);
+        this.ui = new PixelUiRenderer(batch, bodyFont, titleFont, pixelTexture);
         this.dialogueWindow = new DialogueWindowRenderer(ui);
     }
 
@@ -130,7 +132,7 @@ public final class StorySequenceScreen extends ScreenAdapter {
         ui.panel(54f, WINDOW_HEIGHT - 84f, 328f, 56f, PLATE_BACKGROUND);
         ui.panelOutline(54f, WINDOW_HEIGHT - 84f, 328f, 56f, WINDOW_EDGE);
         ui.line("CHAPTER " + progress.getChapterNumber(activityId), 72f, WINDOW_HEIGHT - 48f, 0.74f, TEXT_ACCENT);
-        ui.line(title, 224f, WINDOW_HEIGHT - 48f, 0.86f, TEXT_PRIMARY);
+        ui.titleLine(title, 224f, WINDOW_HEIGHT - 48f, 0.86f, TEXT_PRIMARY);
         ui.line(subtitle, 72f, WINDOW_HEIGHT - 68f, 0.56f, TEXT_MUTED);
     }
 
@@ -186,7 +188,8 @@ public final class StorySequenceScreen extends ScreenAdapter {
     @Override
     public void dispose() {
         batch.dispose();
-        font.dispose();
+        bodyFont.dispose();
+        titleFont.dispose();
         pixelTexture.dispose();
         backgroundTexture.dispose();
         portraitTexture.dispose();

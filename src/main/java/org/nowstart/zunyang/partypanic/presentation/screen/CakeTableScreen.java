@@ -50,7 +50,8 @@ public final class CakeTableScreen extends ScreenAdapter {
     private final GameProgress progress;
     private final CakeBalanceStateMachine stateMachine = new CakeBalanceStateMachine();
     private final SpriteBatch batch = new SpriteBatch();
-    private final BitmapFont font;
+    private final BitmapFont bodyFont;
+    private final BitmapFont titleFont;
     private final Texture pixelTexture;
     private final Texture backgroundTexture;
     private final Texture cakeTexture;
@@ -59,7 +60,8 @@ public final class CakeTableScreen extends ScreenAdapter {
     public CakeTableScreen(GameNavigator navigator, GameProgress progress) {
         this.navigator = navigator;
         this.progress = progress;
-        this.font = ScreenSupport.createFont(buildFontCharacters());
+        this.bodyFont = ScreenSupport.createBodyFont(buildFontCharacters());
+        this.titleFont = ScreenSupport.createTitleFont(buildFontCharacters());
         this.pixelTexture = ScreenSupport.createPixelTexture();
         this.backgroundTexture = ScreenSupport.loadTexture("assets/images/backgrounds/cake-rush-stage.png");
         this.cakeTexture = ScreenSupport.loadTexture("assets/images/events/cake-balance-card.png");
@@ -162,7 +164,7 @@ public final class CakeTableScreen extends ScreenAdapter {
         float hostX = STAGE_X + STAGE_WIDTH - hostWidth - 34f;
         float hostY = STAGE_Y + 36f;
 
-        drawLine("케이크 테이블 미니게임", titleX, titleY, 1.22f, TEXT_ACCENT);
+        drawTitleLine("케이크 테이블 미니게임", titleX, titleY, 1.22f, TEXT_ACCENT);
         drawPanel(infoX, infoY, infoWidth, infoHeight, PANEL_COLOR);
         drawPanelOutline(infoX, infoY, infoWidth, infoHeight, BORDER_COLOR);
         drawParagraph(resolvePhaseDescription(), infoX + 18f, infoY + 58f, infoWidth - 36f, 0.96f, TEXT_PRIMARY);
@@ -385,6 +387,14 @@ public final class CakeTableScreen extends ScreenAdapter {
     }
 
     private void drawLine(String text, float x, float y, float scale, Color color) {
+        drawText(bodyFont, text, x, y, scale, color);
+    }
+
+    private void drawTitleLine(String text, float x, float y, float scale, Color color) {
+        drawText(titleFont, text, x, y, scale, color);
+    }
+
+    private void drawText(BitmapFont font, String text, float x, float y, float scale, Color color) {
         font.getData().setScale(scale);
         font.setColor(color);
         font.draw(batch, text, x, y);
@@ -454,7 +464,8 @@ public final class CakeTableScreen extends ScreenAdapter {
     @Override
     public void dispose() {
         batch.dispose();
-        font.dispose();
+        bodyFont.dispose();
+        titleFont.dispose();
         pixelTexture.dispose();
         backgroundTexture.dispose();
         cakeTexture.dispose();

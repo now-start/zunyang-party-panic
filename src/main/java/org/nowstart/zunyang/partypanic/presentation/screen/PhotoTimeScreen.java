@@ -51,7 +51,8 @@ public final class PhotoTimeScreen extends ScreenAdapter {
     private final GameProgress progress;
     private final PhotoTimeStateMachine stateMachine = new PhotoTimeStateMachine();
     private final SpriteBatch batch = new SpriteBatch();
-    private final BitmapFont font;
+    private final BitmapFont bodyFont;
+    private final BitmapFont titleFont;
     private final Texture pixelTexture;
     private final Texture backgroundTexture;
     private final Texture cardTexture;
@@ -60,7 +61,8 @@ public final class PhotoTimeScreen extends ScreenAdapter {
     public PhotoTimeScreen(GameNavigator navigator, GameProgress progress) {
         this.navigator = navigator;
         this.progress = progress;
-        this.font = ScreenSupport.createFont(buildFontCharacters());
+        this.bodyFont = ScreenSupport.createBodyFont(buildFontCharacters());
+        this.titleFont = ScreenSupport.createTitleFont(buildFontCharacters());
         this.pixelTexture = ScreenSupport.createPixelTexture();
         this.backgroundTexture = ScreenSupport.loadTexture("assets/images/backgrounds/mint-cats-stage.png");
         this.cardTexture = ScreenSupport.loadTexture("assets/images/choices/photo-time-card.png", "assets/images/events/photo-time-card.png");
@@ -169,7 +171,7 @@ public final class PhotoTimeScreen extends ScreenAdapter {
         float hostX = viewX + 318f + (stateMachine.getTargetX() * 66f);
         float hostY = viewY + 20f + (stateMachine.getTargetY() * 40f);
 
-        drawLine("포토존 카메라 미니게임", titleX, titleY, 1.20f, TEXT_ACCENT);
+        drawTitleLine("포토존 카메라 미니게임", titleX, titleY, 1.20f, TEXT_ACCENT);
         drawPanel(infoX, infoY, infoWidth, infoHeight, PANEL_COLOR);
         drawPanelOutline(infoX, infoY, infoWidth, infoHeight, BORDER_COLOR);
         drawParagraph(resolvePhaseDescription(), infoX + 18f, infoY + 58f, infoWidth - 36f, 0.96f, TEXT_PRIMARY);
@@ -396,6 +398,14 @@ public final class PhotoTimeScreen extends ScreenAdapter {
     }
 
     private void drawLine(String text, float x, float y, float scale, Color color) {
+        drawText(bodyFont, text, x, y, scale, color);
+    }
+
+    private void drawTitleLine(String text, float x, float y, float scale, Color color) {
+        drawText(titleFont, text, x, y, scale, color);
+    }
+
+    private void drawText(BitmapFont font, String text, float x, float y, float scale, Color color) {
         font.getData().setScale(scale);
         font.setColor(color);
         font.draw(batch, text, x, y);
@@ -468,7 +478,8 @@ public final class PhotoTimeScreen extends ScreenAdapter {
     @Override
     public void dispose() {
         batch.dispose();
-        font.dispose();
+        bodyFont.dispose();
+        titleFont.dispose();
         pixelTexture.dispose();
         backgroundTexture.dispose();
         cardTexture.dispose();

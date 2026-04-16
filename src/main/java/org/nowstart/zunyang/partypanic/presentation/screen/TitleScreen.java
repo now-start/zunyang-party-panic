@@ -32,7 +32,8 @@ public final class TitleScreen extends ScreenAdapter {
 
     private final GameNavigator navigator;
     private final SpriteBatch batch = new SpriteBatch();
-    private final BitmapFont font;
+    private final BitmapFont bodyFont;
+    private final BitmapFont titleFont;
     private final Texture pixelTexture;
     private final Texture backgroundTexture;
     private final Texture hostTexture;
@@ -41,11 +42,12 @@ public final class TitleScreen extends ScreenAdapter {
 
     public TitleScreen(GameNavigator navigator) {
         this.navigator = navigator;
-        this.font = ScreenSupport.createFont(buildFontCharacters());
+        this.bodyFont = ScreenSupport.createBodyFont(buildFontCharacters());
+        this.titleFont = ScreenSupport.createTitleFont(buildFontCharacters());
         this.pixelTexture = ScreenSupport.createPixelTexture();
         this.backgroundTexture = ScreenSupport.loadTexture("assets/images/backgrounds/finale-stage.png");
         this.hostTexture = ScreenSupport.loadTexture("assets/images/characters/zunyang-birthday-host.png");
-        this.ui = new PixelUiRenderer(batch, font, pixelTexture);
+        this.ui = new PixelUiRenderer(batch, bodyFont, titleFont, pixelTexture);
     }
 
     @Override
@@ -99,7 +101,7 @@ public final class TitleScreen extends ScreenAdapter {
         ui.panelOutline(cardX, cardY, cardWidth, cardHeight, BORDER_COLOR);
 
         ui.line("zunyang-party-panic", cardX + 34f, cardY + cardHeight - 38f, 1.58f, TEXT_ACCENT);
-        ui.line("치즈냥 생일 팬게임", cardX + 34f, cardY + cardHeight - 86f, 1.16f, TEXT_MINT);
+        ui.titleLine("치즈냥 생일 팬게임", cardX + 34f, cardY + cardHeight - 86f, 1.16f, TEXT_MINT);
         ui.paragraph("치즈냥이 직접 타일 기반 준비방을 걸으며 조사와 대사로 생일 방송 시작 직전의 장면을 정리하는 전통 2D 쯔꾸르 팬게임입니다.", cardX + 34f, cardY + 278f, cardWidth - 68f, 0.98f, TEXT_PRIMARY);
         ui.paragraph(
                 operationalUi
@@ -160,7 +162,8 @@ public final class TitleScreen extends ScreenAdapter {
     @Override
     public void dispose() {
         batch.dispose();
-        font.dispose();
+        bodyFont.dispose();
+        titleFont.dispose();
         pixelTexture.dispose();
         backgroundTexture.dispose();
         hostTexture.dispose();

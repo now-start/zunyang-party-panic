@@ -52,7 +52,8 @@ public final class HubScreen extends ScreenAdapter {
     private final GameNavigator navigator;
     private final GameProgress progress;
     private final SpriteBatch batch = new SpriteBatch();
-    private final BitmapFont font;
+    private final BitmapFont bodyFont;
+    private final BitmapFont titleFont;
     private final Texture pixelTexture;
     private final Texture portraitTexture;
     private final PixelUiRenderer ui;
@@ -74,10 +75,11 @@ public final class HubScreen extends ScreenAdapter {
         this.initialNotice = notice;
         this.mapModel = new HubMapModel();
         this.mapX = (WINDOW_WIDTH - mapModel.mapWidth()) * 0.5f;
-        this.font = ScreenSupport.createFont(buildFontCharacters());
+        this.bodyFont = ScreenSupport.createBodyFont(buildFontCharacters());
+        this.titleFont = ScreenSupport.createTitleFont(buildFontCharacters());
         this.pixelTexture = ScreenSupport.createPixelTexture();
         this.portraitTexture = ScreenSupport.loadTexture("assets/images/characters/zunyang-birthday-host.png");
-        this.ui = new PixelUiRenderer(batch, font, pixelTexture);
+        this.ui = new PixelUiRenderer(batch, bodyFont, titleFont, pixelTexture);
         this.dialogueWindow = new DialogueWindowRenderer(ui);
         this.playerDrawX = tileToScreenX(mapModel.playerTileX());
         this.playerDrawY = tileToScreenY(mapModel.playerTileY());
@@ -396,7 +398,7 @@ public final class HubScreen extends ScreenAdapter {
     private void drawLocationPlate() {
         ui.panel(54f, WINDOW_HEIGHT - 82f, 278f, 54f, WINDOW_BACKGROUND);
         ui.panelOutline(54f, WINDOW_HEIGHT - 82f, 278f, 54f, WINDOW_EDGE);
-        ui.line("생일 방송 준비방", 76f, WINDOW_HEIGHT - 48f, 0.94f, TEXT_LIGHT);
+        ui.titleLine("생일 방송 준비방", 76f, WINDOW_HEIGHT - 48f, 0.94f, TEXT_LIGHT);
         ui.line("전통 2D 쯔꾸르형 허브", 76f, WINDOW_HEIGHT - 68f, 0.62f, TEXT_MUTED);
     }
 
@@ -504,7 +506,8 @@ public final class HubScreen extends ScreenAdapter {
     @Override
     public void dispose() {
         batch.dispose();
-        font.dispose();
+        bodyFont.dispose();
+        titleFont.dispose();
         pixelTexture.dispose();
         portraitTexture.dispose();
     }
