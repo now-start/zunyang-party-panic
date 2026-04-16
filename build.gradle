@@ -1,0 +1,33 @@
+ext {
+    gdxVersion = '1.12.1'
+    junitVersion = '5.10.2'
+}
+
+allprojects {
+    group = 'org.nowstart'
+    version = '0.0.1-SNAPSHOT'
+
+    repositories {
+        mavenCentral()
+    }
+}
+
+subprojects {
+    apply plugin: 'java'
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(17)
+        }
+    }
+
+    tasks.withType(Test).configureEach {
+        useJUnitPlatform()
+    }
+}
+
+tasks.register('runDesktop') {
+    group = 'application'
+    description = 'Runs the LWJGL3 desktop launcher.'
+    dependsOn(':lwjgl3:run')
+}
