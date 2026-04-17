@@ -1,12 +1,13 @@
 package org.nowstart.zunyang.partypanic.adapter.in.screen;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.ScreenUtils;
+import org.nowstart.zunyang.partypanic.adapter.in.input.MappedActionInputAdapter;
 import org.nowstart.zunyang.partypanic.adapter.in.renderer.DialogueWindowRenderer;
 import org.nowstart.zunyang.partypanic.adapter.in.renderer.PixelUiRenderer;
 import org.nowstart.zunyang.partypanic.adapter.in.runtime.GameAssets;
@@ -17,6 +18,7 @@ import org.nowstart.zunyang.partypanic.domain.progress.GameProgress;
 import org.nowstart.zunyang.partypanic.domain.story.StoryChapter;
 
 import java.util.List;
+import java.util.Map;
 
 public final class StorySequenceScreen extends AbstractGameScreen {
     private static final Color TEXT_PRIMARY = new Color(0.96f, 0.92f, 0.87f, 1f);
@@ -41,6 +43,12 @@ public final class StorySequenceScreen extends AbstractGameScreen {
     private final Texture portraitTexture;
     private final PixelUiRenderer ui;
     private final DialogueWindowRenderer dialogueWindow;
+    private final MappedActionInputAdapter<StoryAction> input = new MappedActionInputAdapter<>(Map.of(
+            Input.Keys.ESCAPE, StoryAction.EXIT,
+            Input.Keys.ENTER, StoryAction.ADVANCE,
+            Input.Keys.SPACE, StoryAction.ADVANCE,
+            Input.Keys.E, StoryAction.ADVANCE
+    ));
 
     private int pageIndex;
     private float sceneTime;
@@ -99,22 +107,29 @@ public final class StorySequenceScreen extends AbstractGameScreen {
         endFrame();
     }
 
-    private boolean handleInput() {
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
-            navigator.showHub(returnNotice);
-            return false;
-        }
+    @Override
+    protected InputProcessor createInputProcessor() {
+        return input;
+    }
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)
-                || Gdx.input.isKeyJustPressed(Input.Keys.SPACE)
-                || Gdx.input.isKeyJustPressed(Input.Keys.E)) {
-            if (pageIndex < pages.size() - 1) {
-                pageIndex += 1;
-                dialogueWindowProgress = 0f;
-                return true;
+    private boolean handleInput() {
+        StoryAction action;
+        while ((action = input.pollAction()) != null) {
+            switch (action) {
+                case EXIT -> {
+                    navigator.showHub(returnNotice);
+                    return false;
+                }
+                case ADVANCE -> {
+                    if (pageIndex < pages.size() - 1) {
+                        pageIndex += 1;
+                        dialogueWindowProgress = 0f;
+                        return true;
+                    }
+                    navigator.completeStoryActivity(activityId, completionNotice);
+                    return false;
+                }
             }
-            navigator.completeStoryActivity(activityId, completionNotice);
-            return false;
         }
         return true;
     }
@@ -136,5 +151,10 @@ public final class StorySequenceScreen extends AbstractGameScreen {
         ui.line("페이지 " + (pageIndex + 1) + " / " + pages.size(), x + 18f, y + 66f, 0.68f, TEXT_PRIMARY);
         ui.line("예상 엔딩 " + progress.getEndingTitle(), x + 18f, y + 40f, 0.68f, TEXT_MINT);
         ui.paragraph(progress.getNextObjective(), x + 18f, y + 18f, 332f, 0.54f, TEXT_MUTED);
+    }
+
+    private enum StoryAction {
+        EXIT,
+        ADVANCE
     }
 }

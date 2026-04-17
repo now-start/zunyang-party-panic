@@ -1,21 +1,64 @@
 package org.nowstart.zunyang.partypanic.adapter.in.screen;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
-import org.nowstart.zunyang.partypanic.domain.activity.ActivityId;
-import org.nowstart.zunyang.partypanic.domain.minigame.CakeBalanceStateMachine;
-import org.nowstart.zunyang.partypanic.domain.progress.GameProgress;
+import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.ProgressBar;
+import com.badlogic.gdx.utils.viewport.FitViewport;
+import org.nowstart.zunyang.partypanic.adapter.in.input.MappedActionInputAdapter;
 import org.nowstart.zunyang.partypanic.adapter.in.renderer.MiniGameLayout;
 import org.nowstart.zunyang.partypanic.adapter.in.renderer.MiniGamePalette;
 import org.nowstart.zunyang.partypanic.adapter.in.runtime.GameAssets;
+import org.nowstart.zunyang.partypanic.adapter.in.runtime.GameViewportConfig;
+import org.nowstart.zunyang.partypanic.adapter.in.ui.PanelTable;
 import org.nowstart.zunyang.partypanic.application.port.out.GameNavigator;
+import org.nowstart.zunyang.partypanic.domain.activity.ActivityId;
+import org.nowstart.zunyang.partypanic.domain.minigame.CakeBalanceStateMachine;
+import org.nowstart.zunyang.partypanic.domain.progress.GameProgress;
+
+import java.util.Map;
 
 public final class CakeTableScreen extends AbstractMiniGameScreen {
     private final CakeBalanceStateMachine stateMachine = new CakeBalanceStateMachine();
     private final Texture cakeTexture;
     private final Texture hostTexture;
+    private final MappedActionInputAdapter<CakeAction> input = new MappedActionInputAdapter<>(Map.of(
+            Input.Keys.ESCAPE, CakeAction.EXIT,
+            Input.Keys.SPACE, CakeAction.PRIMARY,
+            Input.Keys.LEFT, CakeAction.LEFT,
+            Input.Keys.A, CakeAction.LEFT,
+            Input.Keys.RIGHT, CakeAction.RIGHT,
+            Input.Keys.D, CakeAction.RIGHT,
+            Input.Keys.S, CakeAction.STABILIZE,
+            Input.Keys.DOWN, CakeAction.STABILIZE,
+            Input.Keys.R, CakeAction.RESTART,
+            Input.Keys.H, CakeAction.SAVE
+    ));
+
+    private PanelTable operationalPanel;
+    private PanelTable commandPanel;
+    private PanelTable liveChipPanel;
+    private PanelTable liveGuidePanel;
+    private PanelTable liveResultPanel;
+    private Label operationalPhaseLabel;
+    private Label operationalBestScoreLabel;
+    private ProgressBar operationalStabilityBar;
+    private Label operationalStabilityValueLabel;
+    private ProgressBar operationalTimeBar;
+    private Label operationalTimeValueLabel;
+    private Label operationalRecoveryValueLabel;
+    private Label operationalGuideBodyLabel;
+    private Label operationalGuideHintLabel;
+    private Label operationalResultValueLabel;
+    private Label commandLabel;
+    private Label liveChipStabilityLabel;
+    private Label liveChipTimeLabel;
+    private Label liveGuideBodyLabel;
+    private Label liveGuideHintLabel;
+    private Label liveResultValueLabel;
 
     public CakeTableScreen(GameNavigator navigator, GameProgress progress, GameAssets assets) {
         super(navigator, progress, assets);
@@ -25,38 +68,114 @@ public final class CakeTableScreen extends AbstractMiniGameScreen {
     }
 
     @Override
+    protected InputProcessor createInputProcessor() {
+        return input;
+    }
+
+    @Override
+    protected Stage buildUiStage() {
+        Stage stage = new Stage(new FitViewport(GameViewportConfig.WORLD_WIDTH, GameViewportConfig.WORLD_HEIGHT));
+
+        operationalPanel = scene2dUi.panel(MiniGamePalette.PANEL_STRONG, MiniGamePalette.BORDER_COLOR);
+        operationalPanel.setBounds(MiniGameLayout.PANEL_X, MiniGameLayout.PANEL_Y, MiniGameLayout.PANEL_WIDTH, MiniGameLayout.PANEL_HEIGHT);
+        operationalPanel.defaults().left().growX().padBottom(8f);
+        operationalPanel.add(scene2dUi.titleLabel("케이크 상태", 1.12f, MiniGamePalette.TEXT_ACCENT)).row();
+        operationalPhaseLabel = scene2dUi.bodyLabel("", 0.92f, MiniGamePalette.TEXT_PRIMARY);
+        operationalPanel.add(operationalPhaseLabel).row();
+        operationalBestScoreLabel = scene2dUi.bodyLabel("", 0.92f, MiniGamePalette.TEXT_MINT);
+        operationalPanel.add(operationalBestScoreLabel).row();
+        operationalPanel.add(scene2dUi.bodyLabel("안정도", 0.96f, MiniGamePalette.TEXT_PRIMARY)).padTop(10f).row();
+        operationalStabilityBar = scene2dUi.progressBar(new Color(0.22f, 0.15f, 0.18f, 0.92f), MiniGamePalette.TEXT_MINT);
+        operationalPanel.add(operationalStabilityBar).height(18f).row();
+        operationalStabilityValueLabel = scene2dUi.bodyLabel("", 0.78f, MiniGamePalette.TEXT_MUTED);
+        operationalPanel.add(operationalStabilityValueLabel).row();
+        operationalPanel.add(scene2dUi.bodyLabel("남은 시간", 0.96f, MiniGamePalette.TEXT_PRIMARY)).padTop(10f).row();
+        operationalTimeBar = scene2dUi.progressBar(new Color(0.22f, 0.15f, 0.18f, 0.92f), MiniGamePalette.HIGHLIGHT_COLOR);
+        operationalPanel.add(operationalTimeBar).height(18f).row();
+        operationalTimeValueLabel = scene2dUi.bodyLabel("", 0.78f, MiniGamePalette.TEXT_MUTED);
+        operationalPanel.add(operationalTimeValueLabel).row();
+        operationalRecoveryValueLabel = scene2dUi.bodyLabel("", 0.92f, MiniGamePalette.TEXT_PRIMARY);
+        operationalPanel.add(operationalRecoveryValueLabel).padTop(10f).row();
+        operationalGuideBodyLabel = scene2dUi.bodyLabel("", 0.84f, MiniGamePalette.TEXT_PRIMARY);
+        operationalPanel.add(operationalGuideBodyLabel).width(MiniGameLayout.PANEL_WIDTH - 44f).row();
+        operationalGuideHintLabel = scene2dUi.bodyLabel("", 0.82f, MiniGamePalette.TEXT_MUTED);
+        operationalPanel.add(operationalGuideHintLabel).width(MiniGameLayout.PANEL_WIDTH - 44f).row();
+        operationalResultValueLabel = scene2dUi.titleLabel("", 1.84f, MiniGamePalette.TEXT_MINT);
+        operationalPanel.add(operationalResultValueLabel).padTop(14f).row();
+        stage.addActor(operationalPanel);
+
+        commandPanel = scene2dUi.panel(MiniGamePalette.PANEL_STRONG, MiniGamePalette.BORDER_COLOR);
+        commandPanel.setBounds(MiniGameLayout.COMMAND_X, MiniGameLayout.COMMAND_Y, MiniGameLayout.COMMAND_WIDTH, MiniGameLayout.COMMAND_HEIGHT);
+        commandPanel.defaults().left().growX();
+        commandLabel = scene2dUi.bodyLabel("", 0.90f, MiniGamePalette.TEXT_PRIMARY);
+        commandPanel.add(commandLabel).width(MiniGameLayout.COMMAND_WIDTH - 44f);
+        stage.addActor(commandPanel);
+
+        liveChipPanel = scene2dUi.panel(MiniGamePalette.PANEL_STRONG, MiniGamePalette.BORDER_COLOR);
+        liveChipPanel.setBounds(MiniGameLayout.WINDOW_WIDTH - 250f, MiniGameLayout.WINDOW_HEIGHT - 126f, 194f, 92f);
+        liveChipPanel.defaults().left().growX().padBottom(6f);
+        liveChipStabilityLabel = scene2dUi.bodyLabel("", 0.92f, MiniGamePalette.TEXT_PRIMARY);
+        liveChipPanel.add(liveChipStabilityLabel).row();
+        liveChipTimeLabel = scene2dUi.bodyLabel("", 0.82f, MiniGamePalette.TEXT_MINT);
+        liveChipPanel.add(liveChipTimeLabel);
+        stage.addActor(liveChipPanel);
+
+        liveGuidePanel = scene2dUi.panel(MiniGamePalette.PANEL_COLOR, MiniGamePalette.BORDER_COLOR);
+        liveGuidePanel.setBounds(MiniGameLayout.STAGE_X + 28f, MiniGameLayout.STAGE_Y + 24f, 560f, 84f);
+        liveGuidePanel.defaults().left().growX().padBottom(6f);
+        liveGuideBodyLabel = scene2dUi.bodyLabel("", 0.82f, MiniGamePalette.TEXT_PRIMARY);
+        liveGuidePanel.add(liveGuideBodyLabel).width(524f).row();
+        liveGuideHintLabel = scene2dUi.bodyLabel("", 0.76f, MiniGamePalette.TEXT_MUTED);
+        liveGuidePanel.add(liveGuideHintLabel).width(524f);
+        stage.addActor(liveGuidePanel);
+
+        liveResultPanel = scene2dUi.panel(MiniGamePalette.PANEL_STRONG, MiniGamePalette.HIGHLIGHT_COLOR);
+        liveResultPanel.setBounds(MiniGameLayout.STAGE_X + ((MiniGameLayout.STAGE_WIDTH - 240f) * 0.5f), MiniGameLayout.STAGE_Y + 36f, 240f, 118f);
+        liveResultPanel.defaults().left().growX().padBottom(6f);
+        liveResultPanel.add(scene2dUi.bodyLabel("결과 점수", 0.92f, MiniGamePalette.TEXT_ACCENT)).row();
+        liveResultValueLabel = scene2dUi.titleLabel("", 1.86f, MiniGamePalette.TEXT_MINT);
+        liveResultPanel.add(liveResultValueLabel);
+        stage.addActor(liveResultPanel);
+
+        return stage;
+    }
+
+    @Override
     protected boolean handleInput() {
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
-            navigator.showHub("케이크 테이블에서 허브로 복귀했습니다.");
-            return false;
-        }
-
-        if (stateMachine.getPhase() == CakeBalanceStateMachine.Phase.READY && Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
-            stateMachine.start();
-            return true;
-        }
-
-        if (stateMachine.isActive()) {
-            if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT) || Gdx.input.isKeyJustPressed(Input.Keys.A)) {
-                stateMachine.nudgeLeft();
+        CakeAction action;
+        while ((action = input.pollAction()) != null) {
+            if (action == CakeAction.EXIT) {
+                navigator.showHub("케이크 테이블에서 허브로 복귀했습니다.");
+                return false;
             }
-            if (Gdx.input.isKeyJustPressed(Input.Keys.RIGHT) || Gdx.input.isKeyJustPressed(Input.Keys.D)) {
-                stateMachine.nudgeRight();
-            }
-            if (Gdx.input.isKeyJustPressed(Input.Keys.S) || Gdx.input.isKeyJustPressed(Input.Keys.DOWN)) {
-                stateMachine.stabilize();
-            }
-            return true;
-        }
 
-        if (stateMachine.isResult()) {
-            if (Gdx.input.isKeyJustPressed(Input.Keys.R) || Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
-                stateMachine.restart();
+            if (stateMachine.getPhase() == CakeBalanceStateMachine.Phase.READY) {
+                if (action == CakeAction.PRIMARY) {
+                    stateMachine.start();
+                }
                 return true;
             }
-            if (Gdx.input.isKeyJustPressed(Input.Keys.H)) {
-                navigator.completeScoredActivity(ActivityId.CAKE_TABLE, stateMachine.getFinalScore());
-                return false;
+
+            if (stateMachine.isActive()) {
+                switch (action) {
+                    case LEFT -> stateMachine.nudgeLeft();
+                    case RIGHT -> stateMachine.nudgeRight();
+                    case STABILIZE -> stateMachine.stabilize();
+                    default -> {
+                    }
+                }
+                return true;
+            }
+
+            if (stateMachine.isResult()) {
+                if (action == CakeAction.RESTART || action == CakeAction.PRIMARY) {
+                    stateMachine.restart();
+                    return true;
+                }
+                if (action == CakeAction.SAVE) {
+                    navigator.completeScoredActivity(ActivityId.CAKE_TABLE, stateMachine.getFinalScore());
+                    return false;
+                }
             }
         }
         return true;
@@ -131,77 +250,32 @@ public final class CakeTableScreen extends AbstractMiniGameScreen {
     }
 
     @Override
-    protected void drawOperationalUi() {
-        float left = MiniGameLayout.PANEL_X + 22f;
-        float top = MiniGameLayout.PANEL_Y + MiniGameLayout.PANEL_HEIGHT - 24f;
-        float stabilityRatio = stateMachine.getStability() / 100f;
-        float timeRatio = stateMachine.getSecondsRemaining() / CakeBalanceStateMachine.ACTIVE_SECONDS;
+    protected void syncHud() {
+        boolean operational = showsOperationalUi();
 
-        drawLine("케이크 상태", left, top, 1.16f, MiniGamePalette.TEXT_ACCENT);
-        drawLine("단계 " + stateMachine.getPhase().name(), left, top - 34f, 0.92f, MiniGamePalette.TEXT_PRIMARY);
-        drawLine("최고 점수 " + progress.getBestScore(ActivityId.CAKE_TABLE), left, top - 66f, 0.92f, MiniGamePalette.TEXT_MINT);
+        operationalPanel.setVisible(operational);
+        commandPanel.setVisible(operational);
+        liveChipPanel.setVisible(!operational);
+        liveGuidePanel.setVisible(!operational);
+        liveResultPanel.setVisible(!operational && stateMachine.isResult());
 
-        drawLine("안정도", left, top - 126f, 0.96f, MiniGamePalette.TEXT_PRIMARY);
-        drawPanel(left, top - 156f, MiniGameLayout.PANEL_WIDTH - 52f, 18f, new Color(0.22f, 0.15f, 0.18f, 0.92f));
-        drawPanel(left, top - 156f, (MiniGameLayout.PANEL_WIDTH - 52f) * stabilityRatio, 18f, MiniGamePalette.TEXT_MINT);
-        drawPanelOutline(left, top - 156f, MiniGameLayout.PANEL_WIDTH - 52f, 18f, MiniGamePalette.BORDER_COLOR);
-        drawLine(String.format("%.0f / 100", stateMachine.getStability()), left, top - 168f, 0.78f, MiniGamePalette.TEXT_MUTED);
+        operationalPhaseLabel.setText("단계 " + stateMachine.getPhase().name());
+        operationalBestScoreLabel.setText("최고 점수 " + progress.getBestScore(ActivityId.CAKE_TABLE));
+        operationalStabilityBar.setValue(stateMachine.getStability() / 100f);
+        operationalStabilityValueLabel.setText(String.format("%.0f / 100", stateMachine.getStability()));
+        operationalTimeBar.setValue(stateMachine.getSecondsRemaining() / CakeBalanceStateMachine.ACTIVE_SECONDS);
+        operationalTimeValueLabel.setText(String.format("%.1f초", stateMachine.getSecondsRemaining()));
+        operationalRecoveryValueLabel.setText("복구 횟수 " + stateMachine.getRecoveryCount());
+        operationalGuideBodyLabel.setText("LEFT/A 또는 RIGHT/D 로 케이크를 바로잡고, S 또는 아래 방향키로 급한 흔들림을 눌러 주세요.");
+        operationalGuideHintLabel.setText("H 저장, R 재시작, ESC 복귀");
+        operationalResultValueLabel.setText(stateMachine.isResult() ? String.valueOf(stateMachine.getFinalScore()) : "");
+        commandLabel.setText(commandHint());
 
-        drawLine("남은 시간", left, top - 214f, 0.96f, MiniGamePalette.TEXT_PRIMARY);
-        drawPanel(left, top - 244f, MiniGameLayout.PANEL_WIDTH - 52f, 18f, new Color(0.22f, 0.15f, 0.18f, 0.92f));
-        drawPanel(left, top - 244f, (MiniGameLayout.PANEL_WIDTH - 52f) * timeRatio, 18f, MiniGamePalette.HIGHLIGHT_COLOR);
-        drawPanelOutline(left, top - 244f, MiniGameLayout.PANEL_WIDTH - 52f, 18f, MiniGamePalette.BORDER_COLOR);
-        drawLine(String.format("%.1f초", stateMachine.getSecondsRemaining()), left, top - 256f, 0.78f, MiniGamePalette.TEXT_MUTED);
-
-        drawLine("복구 횟수 " + stateMachine.getRecoveryCount(), left, top - 310f, 0.92f, MiniGamePalette.TEXT_PRIMARY);
-
-        float cardY = MiniGameLayout.PANEL_Y + 184f;
-        drawPanel(left - 2f, cardY, MiniGameLayout.PANEL_WIDTH - 44f, 154f, MiniGamePalette.PANEL_COLOR);
-        drawPanelOutline(left - 2f, cardY, MiniGameLayout.PANEL_WIDTH - 44f, 154f, MiniGamePalette.BORDER_COLOR);
-        drawLine("조작", left + 14f, cardY + 126f, 0.98f, MiniGamePalette.TEXT_ACCENT);
-        drawParagraph("LEFT/A 또는 RIGHT/D 로 케이크를 바로잡고, S 또는 아래 방향키로 급한 흔들림을 눌러 주세요.", left + 14f, cardY + 86f, MiniGameLayout.PANEL_WIDTH - 74f, 0.86f, MiniGamePalette.TEXT_PRIMARY);
-        drawParagraph("결과 화면에서 H를 누르면 점수를 저장하고 허브로 돌아갑니다.", left + 14f, cardY + 34f, MiniGameLayout.PANEL_WIDTH - 74f, 0.82f, MiniGamePalette.TEXT_MUTED);
-
-        if (stateMachine.isResult()) {
-            float resultY = MiniGameLayout.PANEL_Y + 74f;
-            drawLine("결과 점수", left, resultY + 84f, 0.98f, MiniGamePalette.TEXT_ACCENT);
-            drawLine(String.valueOf(stateMachine.getFinalScore()), left, resultY + 38f, 1.84f, MiniGamePalette.TEXT_MINT);
-        }
-    }
-
-    @Override
-    protected void drawLiveHud() {
-        float chipX = MiniGameLayout.WINDOW_WIDTH - 250f;
-        float chipY = MiniGameLayout.WINDOW_HEIGHT - 126f;
-        float chipWidth = 194f;
-        float chipHeight = 92f;
-        float guideX = MiniGameLayout.STAGE_X + 28f;
-        float guideY = MiniGameLayout.STAGE_Y + 24f;
-        float guideWidth = 560f;
-        float guideHeight = 84f;
-
-        drawPanel(chipX, chipY, chipWidth, chipHeight, MiniGamePalette.PANEL_STRONG);
-        drawPanelOutline(chipX, chipY, chipWidth, chipHeight, MiniGamePalette.BORDER_COLOR);
-        drawLine(String.format("안정 %.0f", stateMachine.getStability()), chipX + 16f, chipY + 58f, 0.92f, MiniGamePalette.TEXT_PRIMARY);
-        drawLine(String.format("시간 %.1f초", stateMachine.getSecondsRemaining()), chipX + 16f, chipY + 28f, 0.82f, MiniGamePalette.TEXT_MINT);
-
-        drawPanel(guideX, guideY, guideWidth, guideHeight, MiniGamePalette.PANEL_COLOR);
-        drawPanelOutline(guideX, guideY, guideWidth, guideHeight, MiniGamePalette.BORDER_COLOR);
-        drawParagraph(resolvePhaseDescription(), guideX + 18f, guideY + 50f, guideWidth - 36f, 0.82f, MiniGamePalette.TEXT_PRIMARY);
-        drawLine(resolveLiveHint(), guideX + 18f, guideY + 20f, 0.76f, MiniGamePalette.TEXT_MUTED);
-
-        if (!stateMachine.isResult()) {
-            return;
-        }
-
-        float resultWidth = 240f;
-        float resultHeight = 118f;
-        float resultX = MiniGameLayout.STAGE_X + ((MiniGameLayout.STAGE_WIDTH - resultWidth) * 0.5f);
-        float resultY = MiniGameLayout.STAGE_Y + 36f;
-        drawPanel(resultX, resultY, resultWidth, resultHeight, MiniGamePalette.PANEL_STRONG);
-        drawPanelOutline(resultX, resultY, resultWidth, resultHeight, MiniGamePalette.HIGHLIGHT_COLOR);
-        drawLine("결과 점수", resultX + 22f, resultY + 84f, 0.92f, MiniGamePalette.TEXT_ACCENT);
-        drawLine(String.valueOf(stateMachine.getFinalScore()), resultX + 22f, resultY + 34f, 1.86f, MiniGamePalette.TEXT_MINT);
+        liveChipStabilityLabel.setText(String.format("안정 %.0f", stateMachine.getStability()));
+        liveChipTimeLabel.setText(String.format("시간 %.1f초", stateMachine.getSecondsRemaining()));
+        liveGuideBodyLabel.setText(resolvePhaseDescription());
+        liveGuideHintLabel.setText(resolveLiveHint());
+        liveResultValueLabel.setText(String.valueOf(stateMachine.getFinalScore()));
     }
 
     private String resolvePhaseDescription() {
@@ -220,8 +294,7 @@ public final class CakeTableScreen extends AbstractMiniGameScreen {
         };
     }
 
-    @Override
-    protected String commandHint() {
+    private String commandHint() {
         return switch (stateMachine.getPhase()) {
             case READY -> "현재 입력: SPACE 로 시작, ESC 로 허브 복귀";
             case ACTIVE -> "현재 입력: LEFT/A, RIGHT/D 로 조정, S/아래 방향키로 급정리, ESC 로 허브 복귀";
@@ -235,5 +308,15 @@ public final class CakeTableScreen extends AbstractMiniGameScreen {
             case ACTIVE -> "LEFT RIGHT 균형  S 급정리";
             case RESULT -> "H 저장  R 재시작  ESC 복귀";
         };
+    }
+
+    private enum CakeAction {
+        EXIT,
+        PRIMARY,
+        LEFT,
+        RIGHT,
+        STABILIZE,
+        RESTART,
+        SAVE
     }
 }

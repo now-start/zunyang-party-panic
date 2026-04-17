@@ -1,16 +1,20 @@
 package org.nowstart.zunyang.partypanic.adapter.in.screen;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.ScreenUtils;
+import com.badlogic.gdx.Input;
+import com.badlogic.gdx.InputProcessor;
+import org.nowstart.zunyang.partypanic.adapter.in.input.MappedActionInputAdapter;
 import org.nowstart.zunyang.partypanic.adapter.in.renderer.PixelUiRenderer;
 import org.nowstart.zunyang.partypanic.adapter.in.runtime.GameAssets;
 import org.nowstart.zunyang.partypanic.adapter.in.runtime.GameViewportConfig;
 import org.nowstart.zunyang.partypanic.application.port.out.GameNavigator;
+
+import java.util.Map;
 
 public final class TitleScreen extends AbstractGameScreen {
     private static final Color TEXT_PRIMARY = new Color(0.97f, 0.93f, 0.85f, 1f);
@@ -27,6 +31,12 @@ public final class TitleScreen extends AbstractGameScreen {
     private final Texture backgroundTexture;
     private final Texture hostTexture;
     private final PixelUiRenderer ui;
+    private final MappedActionInputAdapter<TitleAction> input = new MappedActionInputAdapter<>(Map.of(
+            Input.Keys.ENTER, TitleAction.START,
+            Input.Keys.SPACE, TitleAction.START,
+            Input.Keys.ESCAPE, TitleAction.EXIT,
+            Input.Keys.Q, TitleAction.EXIT
+    ));
     private float sceneTime;
 
     public TitleScreen(GameNavigator navigator, GameAssets assets) {
@@ -56,16 +66,26 @@ public final class TitleScreen extends AbstractGameScreen {
         endFrame();
     }
 
+    @Override
+    protected InputProcessor createInputProcessor() {
+        return input;
+    }
+
     private boolean handleInput() {
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER) || Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
-            navigator.showHub("치즈냥의 생일 준비방에 들어왔습니다.");
-            return false;
+        TitleAction action;
+        while ((action = input.pollAction()) != null) {
+            switch (action) {
+                case START -> {
+                    navigator.showHub("치즈냥의 생일 준비방에 들어왔습니다.");
+                    return false;
+                }
+                case EXIT -> {
+                    Gdx.app.exit();
+                    return false;
+                }
+            }
         }
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE) || Gdx.input.isKeyJustPressed(Input.Keys.Q)) {
-            Gdx.app.exit();
-            return false;
-        }
         return true;
     }
 
@@ -117,5 +137,10 @@ public final class TitleScreen extends AbstractGameScreen {
 
     private Color withAlpha(Color color, float alpha) {
         return new Color(color.r, color.g, color.b, alpha);
+    }
+
+    private enum TitleAction {
+        START,
+        EXIT
     }
 }

@@ -1,14 +1,25 @@
 package org.nowstart.zunyang.partypanic.adapter.in.renderer;
 
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.maps.tiled.TiledMap;
+import com.badlogic.gdx.maps.tiled.TiledMapTileLayer;
+import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
+import com.badlogic.gdx.maps.tiled.tiles.StaticTiledMapTile;
+import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.Disposable;
 import org.nowstart.zunyang.partypanic.adapter.in.runtime.GameViewportConfig;
 import org.nowstart.zunyang.partypanic.domain.event.EventVisual;
 import org.nowstart.zunyang.partypanic.domain.event.GameEvent;
+import org.nowstart.zunyang.partypanic.domain.model.GameMap;
 import org.nowstart.zunyang.partypanic.domain.model.GameState;
 import org.nowstart.zunyang.partypanic.domain.policy.EventResolver;
 import org.nowstart.zunyang.partypanic.domain.progress.GameProgress;
 
-public final class HubMapRenderer {
+public final class HubMapRenderer implements Disposable {
     public static final float WINDOW_WIDTH = GameViewportConfig.WORLD_WIDTH;
     public static final float WINDOW_HEIGHT = GameViewportConfig.WORLD_HEIGHT;
     public static final float MAP_Y = 164f;
@@ -33,18 +44,44 @@ public final class HubMapRenderer {
     private final PixelUiRenderer ui;
     private final GameProgress progress;
     private final EventResolver eventResolver;
+    private final GameMap gameMap;
+    private final float mapX;
+    private final Array<Texture> ownedTextures = new Array<>();
+    private final TiledMap tiledMap;
+    private final OrthogonalTiledMapRenderer tiledRenderer;
+    private final StaticTiledMapTile floorLightTile;
+    private final StaticTiledMapTile floorDarkTile;
+    private final StaticTiledMapTile wallTile;
+    private final StaticTiledMapTile rugLightTile;
+    private final StaticTiledMapTile rugDarkTile;
 
-    public HubMapRenderer(PixelUiRenderer ui, GameProgress progress, EventResolver eventResolver) {
+    public HubMapRenderer(PixelUiRenderer ui, GameProgress progress, EventResolver eventResolver, GameMap gameMap, float mapX) {
         this.ui = ui;
         this.progress = progress;
         this.eventResolver = eventResolver;
+        this.gameMap = gameMap;
+        this.mapX = mapX;
+        this.floorLightTile = createTile(createFloorTexture(FLOOR_LIGHT, new Color(0.87f, 0.79f, 0.72f, 1f)));
+        this.floorDarkTile = createTile(createFloorTexture(FLOOR_DARK, new Color(0.84f, 0.76f, 0.69f, 1f)));
+        this.wallTile = createTile(createWallTexture());
+        this.rugLightTile = createTile(createRugTexture(RUG_LIGHT, new Color(0.89f, 0.52f, 0.67f, 0.75f)));
+        this.rugDarkTile = createTile(createRugTexture(RUG_DARK, new Color(0.82f, 0.46f, 0.61f, 0.75f)));
+        this.tiledMap = createTiledMap();
+        this.tiledRenderer = new OrthogonalTiledMapRenderer(tiledMap, 1f);
     }
 
-    public void draw(GameState currentState, float mapX, float playerDrawX, float playerDrawY, boolean operationalUi) {
-        drawBackdrop(currentState, mapX);
-        drawMapFrame(currentState, mapX);
-        drawMapTiles(currentState, mapX);
-        drawMapEvents(currentState, mapX, operationalUi);
+    public void drawBackdropAndFrame() {
+        drawBackdrop();
+        drawMapFrame();
+    }
+
+    public void renderMap(OrthographicCamera camera) {
+        tiledRenderer.setView(camera);
+        tiledRenderer.render();
+    }
+
+    public void drawOverlay(GameState currentState, float playerDrawX, float playerDrawY, boolean operationalUi) {
+        drawMapEvents(currentState, operationalUi);
         drawPlayer(currentState, playerDrawX, playerDrawY);
         drawLocationPlate();
         if (operationalUi) {
@@ -54,52 +91,36 @@ public final class HubMapRenderer {
         }
     }
 
-    private void drawBackdrop(GameState currentState, float mapX) {
+    @Override
+    public void dispose() {
+        tiledRenderer.dispose();
+        tiledMap.dispose();
+        for (Texture texture : ownedTextures) {
+            texture.dispose();
+        }
+        ownedTextures.clear();
+    }
+
+    private void drawBackdrop() {
         ui.panel(0f, 0f, WINDOW_WIDTH, WINDOW_HEIGHT, OUTER_BACKGROUND);
-        ui.panel(0f, MAP_Y - 64f, WINDOW_WIDTH, mapHeight(currentState) + 128f, new Color(0.17f, 0.12f, 0.13f, 1f));
+        ui.panel(0f, MAP_Y - 64f, WINDOW_WIDTH, mapHeight() + 128f, new Color(0.17f, 0.12f, 0.13f, 1f));
         ui.panel(0f, 0f, WINDOW_WIDTH, 124f, new Color(0.09f, 0.07f, 0.08f, 1f));
         ui.panel(0f, WINDOW_HEIGHT - 120f, WINDOW_WIDTH, 120f, new Color(0.09f, 0.07f, 0.08f, 1f));
     }
 
-    private void drawMapFrame(GameState currentState, float mapX) {
-        ui.panel(mapX - 16f, MAP_Y - 16f, mapWidth(currentState) + 32f, mapHeight(currentState) + 32f, FRAME_COLOR);
-        ui.panelOutline(mapX - 16f, MAP_Y - 16f, mapWidth(currentState) + 32f, mapHeight(currentState) + 32f, WINDOW_EDGE);
-        ui.panel(mapX - 6f, MAP_Y - 6f, mapWidth(currentState) + 12f, mapHeight(currentState) + 12f, new Color(0.24f, 0.18f, 0.17f, 0.52f));
+    private void drawMapFrame() {
+        ui.panel(mapX - 16f, MAP_Y - 16f, mapWidth() + 32f, mapHeight() + 32f, FRAME_COLOR);
+        ui.panelOutline(mapX - 16f, MAP_Y - 16f, mapWidth() + 32f, mapHeight() + 32f, WINDOW_EDGE);
+        ui.panel(mapX - 6f, MAP_Y - 6f, mapWidth() + 12f, mapHeight() + 12f, new Color(0.24f, 0.18f, 0.17f, 0.52f));
     }
 
-    private void drawMapTiles(GameState currentState, float mapX) {
-        for (int row = 0; row < currentState.gameMap().rowCount(); row += 1) {
-            for (int column = 0; column < currentState.gameMap().columnCount(); column += 1) {
-                drawTile(currentState, mapX, column, row, currentState.gameMap().tileAt(row, column));
-            }
-        }
-    }
-
-    private void drawTile(GameState currentState, float mapX, int column, int row, char tile) {
-        float x = tileToScreenX(mapX, column);
-        float y = tileToScreenY(currentState, row);
-        boolean even = (column + row) % 2 == 0;
-
-        switch (tile) {
-            case '#' -> {
-                ui.panel(x, y, TILE_SIZE, TILE_SIZE, WALL_COLOR);
-                ui.panel(x, y + TILE_SIZE - 12f, TILE_SIZE, 12f, WALL_TRIM);
-                ui.panel(x, y, TILE_SIZE, 8f, new Color(0.34f, 0.24f, 0.24f, 1f));
-            }
-            case '=' -> ui.panel(x, y, TILE_SIZE, TILE_SIZE, even ? RUG_LIGHT : RUG_DARK);
-            default -> ui.panel(x, y, TILE_SIZE, TILE_SIZE, even ? FLOOR_LIGHT : FLOOR_DARK);
-        }
-
-        ui.panelOutline(x, y, TILE_SIZE, TILE_SIZE, TILE_OUTLINE);
-    }
-
-    private void drawMapEvents(GameState currentState, float mapX, boolean operationalUi) {
+    private void drawMapEvents(GameState currentState, boolean operationalUi) {
         GameEvent suggestedEvent = eventResolver.findSuggestedEvent(currentState, progress).orElse(null);
         GameEvent facingEvent = eventResolver.findFacingEvent(currentState).orElse(null);
 
-        for (GameEvent event : currentState.gameMap().events()) {
-            float x = tileToScreenX(mapX, event.position().x());
-            float y = tileToScreenY(currentState, event.position().y());
+        for (GameEvent event : gameMap.events()) {
+            float x = tileToScreenX(event.position().x());
+            float y = tileToScreenY(event.position().y());
             boolean unlocked = progress.isUnlocked(event.activityId());
             boolean completed = progress.isCompleted(event.activityId());
             boolean suggested = suggestedEvent != null && suggestedEvent.activityId() == event.activityId();
@@ -253,19 +274,99 @@ public final class HubMapRenderer {
         }
     }
 
-    private float mapWidth(GameState currentState) {
-        return currentState.gameMap().columnCount() * TILE_SIZE;
+    private TiledMap createTiledMap() {
+        TiledMap map = new TiledMap();
+        TiledMapTileLayer baseLayer = new TiledMapTileLayer(gameMap.columnCount(), gameMap.rowCount(), TILE_SIZE, TILE_SIZE);
+        baseLayer.setOffsetX(mapX);
+        baseLayer.setOffsetY(MAP_Y);
+
+        for (int row = 0; row < gameMap.rowCount(); row += 1) {
+            int layerY = gameMap.rowCount() - row - 1;
+            for (int column = 0; column < gameMap.columnCount(); column += 1) {
+                TiledMapTileLayer.Cell cell = new TiledMapTileLayer.Cell();
+                cell.setTile(resolveTile(gameMap.tileAt(row, column), column, row));
+                baseLayer.setCell(column, layerY, cell);
+            }
+        }
+
+        map.getLayers().add(baseLayer);
+        return map;
     }
 
-    private float mapHeight(GameState currentState) {
-        return currentState.gameMap().rowCount() * TILE_SIZE;
+    private StaticTiledMapTile resolveTile(char tile, int column, int row) {
+        boolean even = (column + row) % 2 == 0;
+        return switch (tile) {
+            case '#' -> wallTile;
+            case '=' -> even ? rugLightTile : rugDarkTile;
+            default -> even ? floorLightTile : floorDarkTile;
+        };
     }
 
-    private float tileToScreenX(float mapX, int tileX) {
+    private StaticTiledMapTile createTile(Texture texture) {
+        ownedTextures.add(texture);
+        return new StaticTiledMapTile(new TextureRegion(texture));
+    }
+
+    private Texture createFloorTexture(Color fillColor, Color accentColor) {
+        Pixmap pixmap = new Pixmap(TILE_SIZE, TILE_SIZE, Pixmap.Format.RGBA8888);
+        pixmap.setColor(fillColor);
+        pixmap.fill();
+        pixmap.setColor(accentColor);
+        pixmap.fillRectangle(0, TILE_SIZE - 10, TILE_SIZE, 10);
+        pixmap.fillRectangle(0, 0, 6, TILE_SIZE);
+        pixmap.setColor(TILE_OUTLINE);
+        pixmap.drawRectangle(0, 0, TILE_SIZE, TILE_SIZE);
+        return toTexture(pixmap);
+    }
+
+    private Texture createWallTexture() {
+        Pixmap pixmap = new Pixmap(TILE_SIZE, TILE_SIZE, Pixmap.Format.RGBA8888);
+        pixmap.setColor(WALL_COLOR);
+        pixmap.fill();
+        pixmap.setColor(WALL_TRIM);
+        pixmap.fillRectangle(0, TILE_SIZE - 12, TILE_SIZE, 12);
+        pixmap.setColor(new Color(0.34f, 0.24f, 0.24f, 1f));
+        pixmap.fillRectangle(0, 0, TILE_SIZE, 8);
+        pixmap.setColor(TILE_OUTLINE);
+        pixmap.drawRectangle(0, 0, TILE_SIZE, TILE_SIZE);
+        return toTexture(pixmap);
+    }
+
+    private Texture createRugTexture(Color fillColor, Color stripeColor) {
+        Pixmap pixmap = new Pixmap(TILE_SIZE, TILE_SIZE, Pixmap.Format.RGBA8888);
+        pixmap.setColor(fillColor);
+        pixmap.fill();
+        pixmap.setColor(stripeColor);
+        for (int x = 8; x < TILE_SIZE; x += 12) {
+            pixmap.fillRectangle(x, 0, 4, TILE_SIZE);
+        }
+        pixmap.setColor(new Color(fillColor.r * 0.92f, fillColor.g * 0.92f, fillColor.b * 0.92f, 1f));
+        pixmap.fillRectangle(0, TILE_SIZE - 6, TILE_SIZE, 6);
+        pixmap.setColor(TILE_OUTLINE);
+        pixmap.drawRectangle(0, 0, TILE_SIZE, TILE_SIZE);
+        return toTexture(pixmap);
+    }
+
+    private Texture toTexture(Pixmap pixmap) {
+        Texture texture = new Texture(pixmap);
+        texture.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
+        pixmap.dispose();
+        return texture;
+    }
+
+    private float mapWidth() {
+        return gameMap.columnCount() * TILE_SIZE;
+    }
+
+    private float mapHeight() {
+        return gameMap.rowCount() * TILE_SIZE;
+    }
+
+    private float tileToScreenX(int tileX) {
         return mapX + (tileX * TILE_SIZE);
     }
 
-    private float tileToScreenY(GameState currentState, int tileY) {
-        return MAP_Y + ((currentState.gameMap().rowCount() - tileY - 1) * TILE_SIZE);
+    private float tileToScreenY(int tileY) {
+        return MAP_Y + ((gameMap.rowCount() - tileY - 1) * TILE_SIZE);
     }
 }

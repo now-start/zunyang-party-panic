@@ -1,20 +1,65 @@
 package org.nowstart.zunyang.partypanic.adapter.in.screen;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
-import org.nowstart.zunyang.partypanic.domain.activity.ActivityId;
-import org.nowstart.zunyang.partypanic.domain.minigame.DeskSetupStateMachine;
-import org.nowstart.zunyang.partypanic.domain.progress.GameProgress;
+import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.ProgressBar;
+import com.badlogic.gdx.utils.viewport.FitViewport;
+import org.nowstart.zunyang.partypanic.adapter.in.input.MappedActionInputAdapter;
 import org.nowstart.zunyang.partypanic.adapter.in.renderer.MiniGameLayout;
 import org.nowstart.zunyang.partypanic.adapter.in.renderer.MiniGamePalette;
 import org.nowstart.zunyang.partypanic.adapter.in.runtime.GameAssets;
+import org.nowstart.zunyang.partypanic.adapter.in.runtime.GameViewportConfig;
+import org.nowstart.zunyang.partypanic.adapter.in.ui.PanelTable;
 import org.nowstart.zunyang.partypanic.application.port.out.GameNavigator;
+import org.nowstart.zunyang.partypanic.domain.activity.ActivityId;
+import org.nowstart.zunyang.partypanic.domain.minigame.DeskSetupStateMachine;
+import org.nowstart.zunyang.partypanic.domain.progress.GameProgress;
+
+import java.util.Map;
 
 public final class PartyPanicScreen extends AbstractMiniGameScreen {
     private final DeskSetupStateMachine stateMachine = new DeskSetupStateMachine();
     private final Texture hostTexture;
+    private final MappedActionInputAdapter<PartyAction> input = new MappedActionInputAdapter<>(Map.ofEntries(
+            Map.entry(Input.Keys.ESCAPE, PartyAction.EXIT),
+            Map.entry(Input.Keys.SPACE, PartyAction.SPACE),
+            Map.entry(Input.Keys.ENTER, PartyAction.ENTER),
+            Map.entry(Input.Keys.UP, PartyAction.SELECT_PREVIOUS),
+            Map.entry(Input.Keys.DOWN, PartyAction.SELECT_NEXT),
+            Map.entry(Input.Keys.TAB, PartyAction.SELECT_NEXT),
+            Map.entry(Input.Keys.LEFT, PartyAction.ADJUST_LEFT),
+            Map.entry(Input.Keys.A, PartyAction.ADJUST_LEFT),
+            Map.entry(Input.Keys.RIGHT, PartyAction.ADJUST_RIGHT),
+            Map.entry(Input.Keys.D, PartyAction.ADJUST_RIGHT),
+            Map.entry(Input.Keys.R, PartyAction.RESTART),
+            Map.entry(Input.Keys.H, PartyAction.SAVE)
+    ));
+
+    private PanelTable operationalPanel;
+    private PanelTable commandPanel;
+    private PanelTable liveChipPanel;
+    private PanelTable liveGuidePanel;
+    private PanelTable liveResultPanel;
+    private Label operationalPhaseLabel;
+    private Label operationalBestScoreLabel;
+    private ProgressBar operationalTimeBar;
+    private Label operationalTimeValueLabel;
+    private ProgressBar operationalCompletedBar;
+    private Label operationalCompletedValueLabel;
+    private Label operationalSelectedValueLabel;
+    private Label operationalGuideBodyLabel;
+    private Label operationalGuideHintLabel;
+    private Label operationalResultValueLabel;
+    private Label commandLabel;
+    private Label liveChipTimeLabel;
+    private Label liveChipProgressLabel;
+    private Label liveGuideBodyLabel;
+    private Label liveGuideHintLabel;
+    private Label liveResultValueLabel;
 
     public PartyPanicScreen(GameNavigator navigator, GameProgress progress, GameAssets assets) {
         super(navigator, progress, assets);
@@ -23,45 +68,115 @@ public final class PartyPanicScreen extends AbstractMiniGameScreen {
     }
 
     @Override
+    protected InputProcessor createInputProcessor() {
+        return input;
+    }
+
+    @Override
+    protected Stage buildUiStage() {
+        Stage stage = new Stage(new FitViewport(GameViewportConfig.WORLD_WIDTH, GameViewportConfig.WORLD_HEIGHT));
+
+        operationalPanel = scene2dUi.panel(MiniGamePalette.PANEL_STRONG, MiniGamePalette.BORDER_COLOR);
+        operationalPanel.setBounds(MiniGameLayout.PANEL_X, MiniGameLayout.PANEL_Y, MiniGameLayout.PANEL_WIDTH, MiniGameLayout.PANEL_HEIGHT);
+        operationalPanel.defaults().left().growX().padBottom(8f);
+        operationalPanel.add(scene2dUi.titleLabel("책상 상태", 1.12f, MiniGamePalette.TEXT_ACCENT)).row();
+        operationalPhaseLabel = scene2dUi.bodyLabel("", 0.92f, MiniGamePalette.TEXT_PRIMARY);
+        operationalPanel.add(operationalPhaseLabel).row();
+        operationalBestScoreLabel = scene2dUi.bodyLabel("", 0.92f, MiniGamePalette.TEXT_MINT);
+        operationalPanel.add(operationalBestScoreLabel).row();
+        operationalPanel.add(scene2dUi.bodyLabel("남은 시간", 0.96f, MiniGamePalette.TEXT_PRIMARY)).padTop(10f).row();
+        operationalTimeBar = scene2dUi.progressBar(new Color(0.22f, 0.15f, 0.18f, 0.92f), MiniGamePalette.HIGHLIGHT_COLOR);
+        operationalPanel.add(operationalTimeBar).height(18f).row();
+        operationalTimeValueLabel = scene2dUi.bodyLabel("", 0.78f, MiniGamePalette.TEXT_MUTED);
+        operationalPanel.add(operationalTimeValueLabel).row();
+        operationalPanel.add(scene2dUi.bodyLabel("완료 진행", 0.96f, MiniGamePalette.TEXT_PRIMARY)).padTop(10f).row();
+        operationalCompletedBar = scene2dUi.progressBar(new Color(0.22f, 0.15f, 0.18f, 0.92f), MiniGamePalette.TEXT_MINT);
+        operationalPanel.add(operationalCompletedBar).height(18f).row();
+        operationalCompletedValueLabel = scene2dUi.bodyLabel("", 0.78f, MiniGamePalette.TEXT_MUTED);
+        operationalPanel.add(operationalCompletedValueLabel).row();
+        operationalSelectedValueLabel = scene2dUi.bodyLabel("", 1.14f, MiniGamePalette.TEXT_PRIMARY);
+        operationalPanel.add(operationalSelectedValueLabel).padTop(10f).row();
+        operationalGuideBodyLabel = scene2dUi.bodyLabel("", 0.84f, MiniGamePalette.TEXT_PRIMARY);
+        operationalPanel.add(operationalGuideBodyLabel).width(MiniGameLayout.PANEL_WIDTH - 44f).row();
+        operationalGuideHintLabel = scene2dUi.bodyLabel("", 0.80f, MiniGamePalette.TEXT_MUTED);
+        operationalPanel.add(operationalGuideHintLabel).width(MiniGameLayout.PANEL_WIDTH - 44f).row();
+        operationalResultValueLabel = scene2dUi.titleLabel("", 1.84f, MiniGamePalette.TEXT_MINT);
+        operationalPanel.add(operationalResultValueLabel).padTop(14f).row();
+        stage.addActor(operationalPanel);
+
+        commandPanel = scene2dUi.panel(MiniGamePalette.PANEL_STRONG, MiniGamePalette.BORDER_COLOR);
+        commandPanel.setBounds(MiniGameLayout.COMMAND_X, MiniGameLayout.COMMAND_Y, MiniGameLayout.COMMAND_WIDTH, MiniGameLayout.COMMAND_HEIGHT);
+        commandPanel.defaults().left().growX();
+        commandLabel = scene2dUi.bodyLabel("", 0.90f, MiniGamePalette.TEXT_PRIMARY);
+        commandPanel.add(commandLabel).width(MiniGameLayout.COMMAND_WIDTH - 44f);
+        stage.addActor(commandPanel);
+
+        liveChipPanel = scene2dUi.panel(MiniGamePalette.PANEL_STRONG, MiniGamePalette.BORDER_COLOR);
+        liveChipPanel.setBounds(MiniGameLayout.WINDOW_WIDTH - 246f, MiniGameLayout.WINDOW_HEIGHT - 116f, 190f, 84f);
+        liveChipPanel.defaults().left().growX().padBottom(6f);
+        liveChipTimeLabel = scene2dUi.bodyLabel("", 0.96f, MiniGamePalette.TEXT_PRIMARY);
+        liveChipPanel.add(liveChipTimeLabel).row();
+        liveChipProgressLabel = scene2dUi.bodyLabel("", 0.82f, MiniGamePalette.TEXT_MINT);
+        liveChipPanel.add(liveChipProgressLabel);
+        stage.addActor(liveChipPanel);
+
+        liveGuidePanel = scene2dUi.panel(MiniGamePalette.PANEL_COLOR, MiniGamePalette.BORDER_COLOR);
+        liveGuidePanel.setBounds(MiniGameLayout.STAGE_X + 28f, MiniGameLayout.STAGE_Y + 24f, 560f, 84f);
+        liveGuidePanel.defaults().left().growX().padBottom(6f);
+        liveGuideBodyLabel = scene2dUi.bodyLabel("", 0.84f, MiniGamePalette.TEXT_PRIMARY);
+        liveGuidePanel.add(liveGuideBodyLabel).width(524f).row();
+        liveGuideHintLabel = scene2dUi.bodyLabel("", 0.76f, MiniGamePalette.TEXT_MUTED);
+        liveGuidePanel.add(liveGuideHintLabel).width(524f);
+        stage.addActor(liveGuidePanel);
+
+        liveResultPanel = scene2dUi.panel(MiniGamePalette.PANEL_STRONG, MiniGamePalette.HIGHLIGHT_COLOR);
+        liveResultPanel.setBounds(MiniGameLayout.STAGE_X + ((MiniGameLayout.STAGE_WIDTH - 256f) * 0.5f), MiniGameLayout.STAGE_Y + 40f, 256f, 118f);
+        liveResultPanel.defaults().left().growX().padBottom(6f);
+        liveResultPanel.add(scene2dUi.bodyLabel("결과 점수", 0.92f, MiniGamePalette.TEXT_ACCENT)).row();
+        liveResultValueLabel = scene2dUi.titleLabel("", 1.90f, MiniGamePalette.TEXT_MINT);
+        liveResultPanel.add(liveResultValueLabel);
+        stage.addActor(liveResultPanel);
+
+        return stage;
+    }
+
+    @Override
     protected boolean handleInput() {
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
-            navigator.showHub("방송 책상에서 허브로 복귀했습니다.");
-            return false;
-        }
+        PartyAction action;
+        while ((action = input.pollAction()) != null) {
+            if (action == PartyAction.EXIT) {
+                navigator.showHub("방송 책상에서 허브로 복귀했습니다.");
+                return false;
+            }
 
-        if (stateMachine.isReady()) {
-            if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE) || Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
-                stateMachine.start();
+            if (stateMachine.isReady()) {
+                if (action == PartyAction.SPACE || action == PartyAction.ENTER) {
+                    stateMachine.start();
+                }
+                return true;
             }
-            return true;
-        }
 
-        if (stateMachine.isActive()) {
-            if (Gdx.input.isKeyJustPressed(Input.Keys.UP)) {
-                stateMachine.moveSelectionUp();
+            if (stateMachine.isActive()) {
+                switch (action) {
+                    case SELECT_PREVIOUS -> stateMachine.moveSelectionUp();
+                    case SELECT_NEXT -> stateMachine.moveSelectionDown();
+                    case ADJUST_LEFT -> stateMachine.adjustSelected(-6f);
+                    case ADJUST_RIGHT -> stateMachine.adjustSelected(6f);
+                    case SPACE, ENTER -> stateMachine.confirmSelected();
+                    default -> {
+                    }
+                }
+                return true;
             }
-            if (Gdx.input.isKeyJustPressed(Input.Keys.DOWN) || Gdx.input.isKeyJustPressed(Input.Keys.TAB)) {
-                stateMachine.moveSelectionDown();
-            }
-            if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT) || Gdx.input.isKeyJustPressed(Input.Keys.A)) {
-                stateMachine.adjustSelected(-6f);
-            }
-            if (Gdx.input.isKeyJustPressed(Input.Keys.RIGHT) || Gdx.input.isKeyJustPressed(Input.Keys.D)) {
-                stateMachine.adjustSelected(6f);
-            }
-            if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE) || Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
-                stateMachine.confirmSelected();
-            }
-            return true;
-        }
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.R) || Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
-            stateMachine.restart();
-            return true;
-        }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.H) || Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
-            navigator.completeScoredActivity(ActivityId.BROADCAST_DESK, stateMachine.finalScore());
-            return false;
+            if (action == PartyAction.RESTART || action == PartyAction.SPACE) {
+                stateMachine.restart();
+                return true;
+            }
+            if (action == PartyAction.SAVE || action == PartyAction.ENTER) {
+                navigator.completeScoredActivity(ActivityId.BROADCAST_DESK, stateMachine.finalScore());
+                return false;
+            }
         }
         return true;
     }
@@ -130,78 +245,43 @@ public final class PartyPanicScreen extends AbstractMiniGameScreen {
     }
 
     @Override
-    protected void drawOperationalUi() {
-        float left = MiniGameLayout.PANEL_X + 22f;
-        float top = MiniGameLayout.PANEL_Y + MiniGameLayout.PANEL_HEIGHT - 24f;
-        float timeRatio = stateMachine.secondsRemaining() / DeskSetupStateMachine.ACTIVE_SECONDS;
-        float completedRatio = stateMachine.confirmedCount() / (float) stateMachine.taskCount();
+    protected void syncHud() {
+        boolean operational = showsOperationalUi();
 
-        ui.line("책상 상태", left, top, 1.16f, MiniGamePalette.TEXT_ACCENT);
-        ui.line("단계 " + stateMachine.phase().name(), left, top - 34f, 0.92f, MiniGamePalette.TEXT_PRIMARY);
-        ui.line("최고 점수 " + progress.getBestScore(ActivityId.BROADCAST_DESK), left, top - 66f, 0.92f, MiniGamePalette.TEXT_MINT);
+        operationalPanel.setVisible(operational);
+        commandPanel.setVisible(operational);
+        liveChipPanel.setVisible(!operational);
+        liveGuidePanel.setVisible(!operational);
+        liveResultPanel.setVisible(!operational && stateMachine.isResult());
 
-        ui.line("남은 시간", left, top - 126f, 0.96f, MiniGamePalette.TEXT_PRIMARY);
-        ui.panel(left, top - 156f, MiniGameLayout.PANEL_WIDTH - 52f, 18f, new Color(0.22f, 0.15f, 0.18f, 0.92f));
-        ui.panel(left, top - 156f, (MiniGameLayout.PANEL_WIDTH - 52f) * timeRatio, 18f, MiniGamePalette.HIGHLIGHT_COLOR);
-        ui.panelOutline(left, top - 156f, MiniGameLayout.PANEL_WIDTH - 52f, 18f, MiniGamePalette.BORDER_COLOR);
-        ui.line(String.format("%.1f초", stateMachine.secondsRemaining()), left, top - 168f, 0.78f, MiniGamePalette.TEXT_MUTED);
+        operationalPhaseLabel.setText("단계 " + stateMachine.phase().name());
+        operationalBestScoreLabel.setText("최고 점수 " + progress.getBestScore(ActivityId.BROADCAST_DESK));
+        operationalTimeBar.setValue(stateMachine.secondsRemaining() / DeskSetupStateMachine.ACTIVE_SECONDS);
+        operationalTimeValueLabel.setText(String.format("%.1f초", stateMachine.secondsRemaining()));
+        operationalCompletedBar.setValue(stateMachine.confirmedCount() / (float) stateMachine.taskCount());
+        operationalCompletedValueLabel.setText(stateMachine.confirmedCount() + " / " + stateMachine.taskCount() + " 항목");
+        operationalSelectedValueLabel.setText("선택 중  " + stateMachine.taskTitle(stateMachine.selectedIndex()));
+        operationalGuideBodyLabel.setText(stateMachine.feedback());
+        operationalGuideHintLabel.setText("UP / DOWN 선택, LEFT / RIGHT 조정, SPACE 확정, H 저장, R 재시작");
+        operationalResultValueLabel.setText(stateMachine.isResult() ? String.valueOf(stateMachine.finalScore()) : "");
+        commandLabel.setText(stateMachine.commandHint());
 
-        ui.line("완료 진행", left, top - 214f, 0.96f, MiniGamePalette.TEXT_PRIMARY);
-        ui.panel(left, top - 244f, MiniGameLayout.PANEL_WIDTH - 52f, 18f, new Color(0.22f, 0.15f, 0.18f, 0.92f));
-        ui.panel(left, top - 244f, (MiniGameLayout.PANEL_WIDTH - 52f) * completedRatio, 18f, MiniGamePalette.TEXT_MINT);
-        ui.panelOutline(left, top - 244f, MiniGameLayout.PANEL_WIDTH - 52f, 18f, MiniGamePalette.BORDER_COLOR);
-        ui.line(stateMachine.confirmedCount() + " / " + stateMachine.taskCount() + " 항목", left, top - 256f, 0.78f, MiniGamePalette.TEXT_MUTED);
-
-        ui.line("선택 중", left, top - 314f, 0.96f, MiniGamePalette.TEXT_PRIMARY);
-        ui.line(stateMachine.taskTitle(stateMachine.selectedIndex()), left, top - 348f, 1.14f, MiniGamePalette.TEXT_PRIMARY);
-        ui.paragraph(stateMachine.taskHint(stateMachine.selectedIndex()), left, top - 382f, MiniGameLayout.PANEL_WIDTH - 44f, 0.82f, MiniGamePalette.TEXT_MUTED);
-
-        float guideY = MiniGameLayout.PANEL_Y + 166f;
-        ui.panel(left - 2f, guideY, MiniGameLayout.PANEL_WIDTH - 44f, 168f, MiniGamePalette.PANEL_COLOR);
-        ui.panelOutline(left - 2f, guideY, MiniGameLayout.PANEL_WIDTH - 44f, 168f, MiniGamePalette.BORDER_COLOR);
-        ui.line("안내", left + 14f, guideY + 138f, 0.98f, MiniGamePalette.TEXT_ACCENT);
-        ui.paragraph(stateMachine.feedback(), left + 14f, guideY + 98f, MiniGameLayout.PANEL_WIDTH - 74f, 0.84f, MiniGamePalette.TEXT_PRIMARY);
-        ui.paragraph("UP / DOWN 으로 작업 선택, LEFT / RIGHT 로 수치 조정, SPACE 로 확정합니다.", left + 14f, guideY + 52f, MiniGameLayout.PANEL_WIDTH - 74f, 0.80f, MiniGamePalette.TEXT_MUTED);
-        ui.paragraph("결과 화면에서는 H 또는 ENTER로 저장, R로 재시작합니다.", left + 14f, guideY + 20f, MiniGameLayout.PANEL_WIDTH - 74f, 0.80f, MiniGamePalette.TEXT_MUTED);
-
-        if (stateMachine.isResult()) {
-            float resultY = MiniGameLayout.PANEL_Y + 74f;
-            ui.line("결과 점수", left, resultY + 80f, 0.98f, MiniGamePalette.TEXT_ACCENT);
-            ui.line(String.valueOf(stateMachine.finalScore()), left, resultY + 34f, 1.86f, MiniGamePalette.TEXT_MINT);
-        }
+        liveChipTimeLabel.setText(String.format("%.1f초", stateMachine.secondsRemaining()));
+        liveChipProgressLabel.setText(stateMachine.confirmedCount() + " / " + stateMachine.taskCount() + " 정리");
+        liveGuideBodyLabel.setText(stateMachine.feedback());
+        liveGuideHintLabel.setText(stateMachine.liveHint());
+        liveResultValueLabel.setText(String.valueOf(stateMachine.finalScore()));
     }
 
-    @Override
-    protected void drawLiveHud() {
-        float chipX = MiniGameLayout.WINDOW_WIDTH - 246f;
-        float chipY = MiniGameLayout.WINDOW_HEIGHT - 116f;
-        float feedbackX = MiniGameLayout.STAGE_X + 28f;
-        float feedbackY = MiniGameLayout.STAGE_Y + 24f;
-
-        ui.panel(chipX, chipY, 190f, 84f, MiniGamePalette.PANEL_STRONG);
-        ui.panelOutline(chipX, chipY, 190f, 84f, MiniGamePalette.BORDER_COLOR);
-        ui.line(String.format("%.1f초", stateMachine.secondsRemaining()), chipX + 16f, chipY + 54f, 0.96f, MiniGamePalette.TEXT_PRIMARY);
-        ui.line(stateMachine.confirmedCount() + " / " + stateMachine.taskCount() + " 정리", chipX + 16f, chipY + 24f, 0.82f, MiniGamePalette.TEXT_MINT);
-
-        ui.panel(feedbackX, feedbackY, 560f, 84f, MiniGamePalette.PANEL_COLOR);
-        ui.panelOutline(feedbackX, feedbackY, 560f, 84f, MiniGamePalette.BORDER_COLOR);
-        ui.paragraph(stateMachine.feedback(), feedbackX + 18f, feedbackY + 50f, 524f, 0.84f, MiniGamePalette.TEXT_PRIMARY);
-        ui.line(stateMachine.liveHint(), feedbackX + 18f, feedbackY + 20f, 0.76f, MiniGamePalette.TEXT_MUTED);
-
-        if (!stateMachine.isResult()) {
-            return;
-        }
-
-        float resultX = MiniGameLayout.STAGE_X + ((MiniGameLayout.STAGE_WIDTH - 256f) * 0.5f);
-        float resultY = MiniGameLayout.STAGE_Y + 40f;
-        ui.panel(resultX, resultY, 256f, 118f, MiniGamePalette.PANEL_STRONG);
-        ui.panelOutline(resultX, resultY, 256f, 118f, MiniGamePalette.HIGHLIGHT_COLOR);
-        ui.line("결과 점수", resultX + 22f, resultY + 86f, 0.92f, MiniGamePalette.TEXT_ACCENT);
-        ui.line(String.valueOf(stateMachine.finalScore()), resultX + 22f, resultY + 36f, 1.90f, MiniGamePalette.TEXT_MINT);
-    }
-
-    @Override
-    protected String commandHint() {
-        return stateMachine.commandHint();
+    private enum PartyAction {
+        EXIT,
+        SPACE,
+        ENTER,
+        SELECT_PREVIOUS,
+        SELECT_NEXT,
+        ADJUST_LEFT,
+        ADJUST_RIGHT,
+        RESTART,
+        SAVE
     }
 }

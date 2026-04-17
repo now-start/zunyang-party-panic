@@ -1,21 +1,66 @@
 package org.nowstart.zunyang.partypanic.adapter.in.screen;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.ProgressBar;
+import com.badlogic.gdx.utils.viewport.FitViewport;
+import org.nowstart.zunyang.partypanic.adapter.in.input.MappedActionInputAdapter;
 import org.nowstart.zunyang.partypanic.adapter.in.renderer.MiniGameLayout;
 import org.nowstart.zunyang.partypanic.adapter.in.renderer.MiniGamePalette;
 import org.nowstart.zunyang.partypanic.adapter.in.runtime.GameAssets;
+import org.nowstart.zunyang.partypanic.adapter.in.runtime.GameViewportConfig;
+import org.nowstart.zunyang.partypanic.adapter.in.ui.PanelTable;
 import org.nowstart.zunyang.partypanic.application.port.out.GameNavigator;
 import org.nowstart.zunyang.partypanic.domain.activity.ActivityId;
 import org.nowstart.zunyang.partypanic.domain.minigame.PhotoTimeStateMachine;
 import org.nowstart.zunyang.partypanic.domain.progress.GameProgress;
 
+import java.util.Map;
+
 public final class PhotoTimeScreen extends AbstractMiniGameScreen {
     private final PhotoTimeStateMachine stateMachine = new PhotoTimeStateMachine();
     private final Texture cardTexture;
     private final Texture hostTexture;
+    private final MappedActionInputAdapter<PhotoAction> input = new MappedActionInputAdapter<>(Map.ofEntries(
+            Map.entry(Input.Keys.ESCAPE, PhotoAction.EXIT),
+            Map.entry(Input.Keys.SPACE, PhotoAction.PRIMARY),
+            Map.entry(Input.Keys.LEFT, PhotoAction.LEFT),
+            Map.entry(Input.Keys.A, PhotoAction.LEFT),
+            Map.entry(Input.Keys.RIGHT, PhotoAction.RIGHT),
+            Map.entry(Input.Keys.D, PhotoAction.RIGHT),
+            Map.entry(Input.Keys.UP, PhotoAction.UP),
+            Map.entry(Input.Keys.W, PhotoAction.UP),
+            Map.entry(Input.Keys.DOWN, PhotoAction.DOWN),
+            Map.entry(Input.Keys.S, PhotoAction.DOWN),
+            Map.entry(Input.Keys.R, PhotoAction.RESTART),
+            Map.entry(Input.Keys.H, PhotoAction.SAVE)
+    ));
+    private PanelTable operationalPanel;
+    private PanelTable commandPanel;
+    private PanelTable liveChipPanel;
+    private PanelTable liveGuidePanel;
+    private PanelTable liveResultPanel;
+    private Label operationalPhaseLabel;
+    private Label operationalBestScoreLabel;
+    private ProgressBar operationalTimeBar;
+    private Label operationalTimeValueLabel;
+    private ProgressBar operationalShotBar;
+    private Label operationalShotValueLabel;
+    private Label operationalJudgementLabel;
+    private Label operationalScoreLabel;
+    private Label operationalGuideBodyLabel;
+    private Label operationalGuideHintLabel;
+    private Label operationalResultValueLabel;
+    private Label commandLabel;
+    private Label liveChipTimeLabel;
+    private Label liveChipShotLabel;
+    private Label liveGuideBodyLabel;
+    private Label liveGuideHintLabel;
+    private Label liveResultValueLabel;
 
     public PhotoTimeScreen(GameNavigator navigator, GameProgress progress, GameAssets assets) {
         super(navigator, progress, assets);
@@ -26,46 +71,120 @@ public final class PhotoTimeScreen extends AbstractMiniGameScreen {
 
     @Override
     protected boolean handleInput() {
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
-            navigator.showHub("포토존에서 허브로 복귀했습니다.");
-            return false;
-        }
+        PhotoAction action;
+        while ((action = input.pollAction()) != null) {
+            if (action == PhotoAction.EXIT) {
+                navigator.showHub("포토존에서 허브로 복귀했습니다.");
+                return false;
+            }
 
-        if (stateMachine.getPhase() == PhotoTimeStateMachine.Phase.READY && Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
-            stateMachine.start();
-            return true;
-        }
-
-        if (stateMachine.isActive()) {
-            if (Gdx.input.isKeyJustPressed(Input.Keys.LEFT) || Gdx.input.isKeyJustPressed(Input.Keys.A)) {
-                stateMachine.moveLeft();
-            }
-            if (Gdx.input.isKeyJustPressed(Input.Keys.RIGHT) || Gdx.input.isKeyJustPressed(Input.Keys.D)) {
-                stateMachine.moveRight();
-            }
-            if (Gdx.input.isKeyJustPressed(Input.Keys.UP) || Gdx.input.isKeyJustPressed(Input.Keys.W)) {
-                stateMachine.moveUp();
-            }
-            if (Gdx.input.isKeyJustPressed(Input.Keys.DOWN) || Gdx.input.isKeyJustPressed(Input.Keys.S)) {
-                stateMachine.moveDown();
-            }
-            if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
-                stateMachine.capture();
-            }
-            return true;
-        }
-
-        if (stateMachine.isResult()) {
-            if (Gdx.input.isKeyJustPressed(Input.Keys.R) || Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
-                stateMachine.restart();
+            if (stateMachine.getPhase() == PhotoTimeStateMachine.Phase.READY) {
+                if (action == PhotoAction.PRIMARY) {
+                    stateMachine.start();
+                }
                 return true;
             }
-            if (Gdx.input.isKeyJustPressed(Input.Keys.H)) {
-                navigator.completeScoredActivity(ActivityId.PHOTO_TIME, stateMachine.getFinalScore());
-                return false;
+
+            if (stateMachine.isActive()) {
+                switch (action) {
+                    case LEFT -> stateMachine.moveLeft();
+                    case RIGHT -> stateMachine.moveRight();
+                    case UP -> stateMachine.moveUp();
+                    case DOWN -> stateMachine.moveDown();
+                    case PRIMARY -> stateMachine.capture();
+                    default -> {
+                    }
+                }
+                return true;
+            }
+
+            if (stateMachine.isResult()) {
+                if (action == PhotoAction.RESTART || action == PhotoAction.PRIMARY) {
+                    stateMachine.restart();
+                    return true;
+                }
+                if (action == PhotoAction.SAVE) {
+                    navigator.completeScoredActivity(ActivityId.PHOTO_TIME, stateMachine.getFinalScore());
+                    return false;
+                }
             }
         }
         return true;
+    }
+
+    @Override
+    protected InputProcessor createInputProcessor() {
+        return input;
+    }
+
+    @Override
+    protected Stage buildUiStage() {
+        Stage stage = new Stage(new FitViewport(GameViewportConfig.WORLD_WIDTH, GameViewportConfig.WORLD_HEIGHT));
+
+        operationalPanel = scene2dUi.panel(MiniGamePalette.PANEL_STRONG, MiniGamePalette.BORDER_COLOR);
+        operationalPanel.setBounds(MiniGameLayout.PANEL_X, MiniGameLayout.PANEL_Y, MiniGameLayout.PANEL_WIDTH, MiniGameLayout.PANEL_HEIGHT);
+        operationalPanel.defaults().left().growX().padBottom(8f);
+        operationalPanel.add(scene2dUi.titleLabel("포토존 상태", 1.12f, MiniGamePalette.TEXT_ACCENT)).row();
+        operationalPhaseLabel = scene2dUi.bodyLabel("", 0.92f, MiniGamePalette.TEXT_PRIMARY);
+        operationalPanel.add(operationalPhaseLabel).row();
+        operationalBestScoreLabel = scene2dUi.bodyLabel("", 0.92f, MiniGamePalette.TEXT_MINT);
+        operationalPanel.add(operationalBestScoreLabel).row();
+        operationalPanel.add(scene2dUi.bodyLabel("남은 시간", 0.96f, MiniGamePalette.TEXT_PRIMARY)).padTop(10f).row();
+        operationalTimeBar = scene2dUi.progressBar(new Color(0.22f, 0.15f, 0.18f, 0.92f), MiniGamePalette.TEXT_BLUE);
+        operationalPanel.add(operationalTimeBar).height(18f).row();
+        operationalTimeValueLabel = scene2dUi.bodyLabel("", 0.78f, MiniGamePalette.TEXT_MUTED);
+        operationalPanel.add(operationalTimeValueLabel).row();
+        operationalPanel.add(scene2dUi.bodyLabel("촬영 진행", 0.96f, MiniGamePalette.TEXT_PRIMARY)).padTop(10f).row();
+        operationalShotBar = scene2dUi.progressBar(new Color(0.22f, 0.15f, 0.18f, 0.92f), MiniGamePalette.HIGHLIGHT_COLOR);
+        operationalPanel.add(operationalShotBar).height(18f).row();
+        operationalShotValueLabel = scene2dUi.bodyLabel("", 0.78f, MiniGamePalette.TEXT_MUTED);
+        operationalPanel.add(operationalShotValueLabel).row();
+        operationalJudgementLabel = scene2dUi.bodyLabel("", 0.92f, MiniGamePalette.TEXT_PRIMARY);
+        operationalPanel.add(operationalJudgementLabel).padTop(10f).row();
+        operationalScoreLabel = scene2dUi.bodyLabel("", 0.90f, MiniGamePalette.TEXT_MINT);
+        operationalPanel.add(operationalScoreLabel).row();
+        operationalGuideBodyLabel = scene2dUi.bodyLabel("", 0.84f, MiniGamePalette.TEXT_PRIMARY);
+        operationalPanel.add(operationalGuideBodyLabel).width(MiniGameLayout.PANEL_WIDTH - 44f).padTop(10f).row();
+        operationalGuideHintLabel = scene2dUi.bodyLabel("", 0.82f, MiniGamePalette.TEXT_MUTED);
+        operationalPanel.add(operationalGuideHintLabel).width(MiniGameLayout.PANEL_WIDTH - 44f).row();
+        operationalResultValueLabel = scene2dUi.titleLabel("", 1.84f, MiniGamePalette.TEXT_MINT);
+        operationalPanel.add(operationalResultValueLabel).padTop(14f).row();
+        stage.addActor(operationalPanel);
+
+        commandPanel = scene2dUi.panel(MiniGamePalette.PANEL_STRONG, MiniGamePalette.BORDER_COLOR);
+        commandPanel.setBounds(MiniGameLayout.COMMAND_X, MiniGameLayout.COMMAND_Y, MiniGameLayout.COMMAND_WIDTH, MiniGameLayout.COMMAND_HEIGHT);
+        commandPanel.defaults().left().growX();
+        commandLabel = scene2dUi.bodyLabel("", 0.90f, MiniGamePalette.TEXT_PRIMARY);
+        commandPanel.add(commandLabel).width(MiniGameLayout.COMMAND_WIDTH - 44f);
+        stage.addActor(commandPanel);
+
+        liveChipPanel = scene2dUi.panel(MiniGamePalette.PANEL_STRONG, MiniGamePalette.BORDER_COLOR);
+        liveChipPanel.setBounds(MiniGameLayout.WINDOW_WIDTH - 250f, MiniGameLayout.WINDOW_HEIGHT - 126f, 194f, 92f);
+        liveChipPanel.defaults().left().growX().padBottom(6f);
+        liveChipTimeLabel = scene2dUi.bodyLabel("", 0.94f, MiniGamePalette.TEXT_PRIMARY);
+        liveChipPanel.add(liveChipTimeLabel).row();
+        liveChipShotLabel = scene2dUi.bodyLabel("", 0.82f, MiniGamePalette.TEXT_MINT);
+        liveChipPanel.add(liveChipShotLabel);
+        stage.addActor(liveChipPanel);
+
+        liveGuidePanel = scene2dUi.panel(MiniGamePalette.PANEL_COLOR, MiniGamePalette.BORDER_COLOR);
+        liveGuidePanel.setBounds(MiniGameLayout.STAGE_X + 28f, MiniGameLayout.STAGE_Y + 24f, 580f, 84f);
+        liveGuidePanel.defaults().left().growX().padBottom(6f);
+        liveGuideBodyLabel = scene2dUi.bodyLabel("", 0.82f, MiniGamePalette.TEXT_PRIMARY);
+        liveGuidePanel.add(liveGuideBodyLabel).width(544f).row();
+        liveGuideHintLabel = scene2dUi.bodyLabel("", 0.76f, MiniGamePalette.TEXT_MUTED);
+        liveGuidePanel.add(liveGuideHintLabel).width(544f);
+        stage.addActor(liveGuidePanel);
+
+        liveResultPanel = scene2dUi.panel(MiniGamePalette.PANEL_STRONG, MiniGamePalette.HIGHLIGHT_COLOR);
+        liveResultPanel.setBounds(MiniGameLayout.STAGE_X + ((MiniGameLayout.STAGE_WIDTH - 240f) * 0.5f), MiniGameLayout.STAGE_Y + 36f, 240f, 118f);
+        liveResultPanel.defaults().left().growX().padBottom(6f);
+        liveResultPanel.add(scene2dUi.bodyLabel("결과 점수", 0.92f, MiniGamePalette.TEXT_ACCENT)).row();
+        liveResultValueLabel = scene2dUi.titleLabel("", 1.86f, MiniGamePalette.TEXT_MINT);
+        liveResultPanel.add(liveResultValueLabel);
+        stage.addActor(liveResultPanel);
+
+        return stage;
     }
 
     @Override
@@ -140,83 +259,33 @@ public final class PhotoTimeScreen extends AbstractMiniGameScreen {
     }
 
     @Override
-    protected void drawOperationalUi() {
-        float left = MiniGameLayout.PANEL_X + 22f;
-        float top = MiniGameLayout.PANEL_Y + MiniGameLayout.PANEL_HEIGHT - 24f;
-        float timeRatio = stateMachine.getSecondsRemaining() / PhotoTimeStateMachine.ACTIVE_SECONDS;
-        float shotRatio = stateMachine.getCapturedShots() / (float) PhotoTimeStateMachine.TOTAL_SHOTS;
+    protected void syncHud() {
+        boolean operational = showsOperationalUi();
 
-        drawLine("포토존 상태", left, top, 1.16f, MiniGamePalette.TEXT_ACCENT);
-        drawLine("단계 " + stateMachine.getPhase().name(), left, top - 34f, 0.92f, MiniGamePalette.TEXT_PRIMARY);
-        drawLine("최고 점수 " + progress.getBestScore(ActivityId.PHOTO_TIME), left, top - 66f, 0.92f, MiniGamePalette.TEXT_MINT);
+        operationalPanel.setVisible(operational);
+        commandPanel.setVisible(operational);
+        liveChipPanel.setVisible(!operational);
+        liveGuidePanel.setVisible(!operational);
+        liveResultPanel.setVisible(!operational && stateMachine.isResult());
 
-        drawLine("남은 시간", left, top - 126f, 0.96f, MiniGamePalette.TEXT_PRIMARY);
-        drawPanel(left, top - 156f, MiniGameLayout.PANEL_WIDTH - 52f, 18f, new Color(0.22f, 0.15f, 0.18f, 0.92f));
-        drawPanel(left, top - 156f, (MiniGameLayout.PANEL_WIDTH - 52f) * timeRatio, 18f, MiniGamePalette.TEXT_BLUE);
-        drawPanelOutline(left, top - 156f, MiniGameLayout.PANEL_WIDTH - 52f, 18f, MiniGamePalette.BORDER_COLOR);
-        drawLine(String.format("%.1f초", stateMachine.getSecondsRemaining()), left, top - 168f, 0.78f, MiniGamePalette.TEXT_MUTED);
+        operationalPhaseLabel.setText("단계 " + stateMachine.getPhase().name());
+        operationalBestScoreLabel.setText("최고 점수 " + progress.getBestScore(ActivityId.PHOTO_TIME));
+        operationalTimeBar.setValue(stateMachine.getSecondsRemaining() / PhotoTimeStateMachine.ACTIVE_SECONDS);
+        operationalTimeValueLabel.setText(String.format("%.1f초", stateMachine.getSecondsRemaining()));
+        operationalShotBar.setValue(stateMachine.getCapturedShots() / (float) PhotoTimeStateMachine.TOTAL_SHOTS);
+        operationalShotValueLabel.setText(stateMachine.getCapturedShots() + " / " + PhotoTimeStateMachine.TOTAL_SHOTS + " 컷");
+        operationalJudgementLabel.setText("마지막 판정 " + stateMachine.getLastJudgement());
+        operationalScoreLabel.setText("최근 점수 " + stateMachine.getLastShotScore());
+        operationalGuideBodyLabel.setText("방향키 또는 WASD로 카메라 프레임을 움직이고 SPACE로 셔터를 끊으세요. 민트 프레임과 분홍 프레임을 겹칠수록 점수가 높습니다.");
+        operationalGuideHintLabel.setText("결과 화면에서 H를 누르면 허브에 점수를 저장합니다.");
+        operationalResultValueLabel.setText(stateMachine.isResult() ? String.valueOf(stateMachine.getFinalScore()) : "");
+        commandLabel.setText(resolveCommandHint());
 
-        drawLine("촬영 진행", left, top - 214f, 0.96f, MiniGamePalette.TEXT_PRIMARY);
-        drawPanel(left, top - 244f, MiniGameLayout.PANEL_WIDTH - 52f, 18f, new Color(0.22f, 0.15f, 0.18f, 0.92f));
-        drawPanel(left, top - 244f, (MiniGameLayout.PANEL_WIDTH - 52f) * shotRatio, 18f, MiniGamePalette.HIGHLIGHT_COLOR);
-        drawPanelOutline(left, top - 244f, MiniGameLayout.PANEL_WIDTH - 52f, 18f, MiniGamePalette.BORDER_COLOR);
-        drawLine(stateMachine.getCapturedShots() + " / " + PhotoTimeStateMachine.TOTAL_SHOTS + " 컷", left, top - 256f, 0.78f, MiniGamePalette.TEXT_MUTED);
-
-        drawLine("마지막 판정 " + stateMachine.getLastJudgement(), left, top - 312f, 0.92f, MiniGamePalette.TEXT_PRIMARY);
-        drawLine("최근 점수 " + stateMachine.getLastShotScore(), left, top - 344f, 0.90f, MiniGamePalette.TEXT_MINT);
-
-        float guideY = MiniGameLayout.PANEL_Y + 194f;
-        drawPanel(left - 2f, guideY, MiniGameLayout.PANEL_WIDTH - 44f, 150f, MiniGamePalette.PANEL_COLOR);
-        drawPanelOutline(left - 2f, guideY, MiniGameLayout.PANEL_WIDTH - 44f, 150f, MiniGamePalette.BORDER_COLOR);
-        drawLine("조작", left + 14f, guideY + 120f, 0.98f, MiniGamePalette.TEXT_ACCENT);
-        drawParagraph("방향키 또는 WASD로 카메라 프레임을 움직이고 SPACE로 셔터를 끊으세요. 민트 프레임과 분홍 프레임을 겹칠수록 점수가 높습니다.", left + 14f, guideY + 80f, MiniGameLayout.PANEL_WIDTH - 74f, 0.84f, MiniGamePalette.TEXT_PRIMARY);
-        drawParagraph("결과 화면에서 H를 누르면 허브에 점수를 저장합니다.", left + 14f, guideY + 30f, MiniGameLayout.PANEL_WIDTH - 74f, 0.82f, MiniGamePalette.TEXT_MUTED);
-
-        if (stateMachine.isResult()) {
-            float resultY = MiniGameLayout.PANEL_Y + 82f;
-            drawLine("결과 점수", left, resultY + 82f, 0.98f, MiniGamePalette.TEXT_ACCENT);
-            drawLine(String.valueOf(stateMachine.getFinalScore()), left, resultY + 34f, 1.84f, MiniGamePalette.TEXT_MINT);
-        }
-    }
-
-    @Override
-    protected void drawLiveHud() {
-        float chipX = MiniGameLayout.WINDOW_WIDTH - 250f;
-        float chipY = MiniGameLayout.WINDOW_HEIGHT - 126f;
-        float chipWidth = 194f;
-        float chipHeight = 92f;
-        float guideX = MiniGameLayout.STAGE_X + 28f;
-        float guideY = MiniGameLayout.STAGE_Y + 24f;
-        float guideWidth = 580f;
-        float guideHeight = 84f;
-
-        drawPanel(chipX, chipY, chipWidth, chipHeight, MiniGamePalette.PANEL_STRONG);
-        drawPanelOutline(chipX, chipY, chipWidth, chipHeight, MiniGamePalette.BORDER_COLOR);
-        drawLine(String.format("%.1f초", stateMachine.getSecondsRemaining()), chipX + 16f, chipY + 58f, 0.94f, MiniGamePalette.TEXT_PRIMARY);
-        drawLine(stateMachine.getCapturedShots() + " / " + PhotoTimeStateMachine.TOTAL_SHOTS + " 컷", chipX + 16f, chipY + 28f, 0.82f, MiniGamePalette.TEXT_MINT);
-
-        drawPanel(guideX, guideY, guideWidth, guideHeight, MiniGamePalette.PANEL_COLOR);
-        drawPanelOutline(guideX, guideY, guideWidth, guideHeight, MiniGamePalette.BORDER_COLOR);
-        drawParagraph(resolvePhaseDescription(), guideX + 18f, guideY + 50f, guideWidth - 36f, 0.82f, MiniGamePalette.TEXT_PRIMARY);
-        drawLine(resolveLiveHint(), guideX + 18f, guideY + 20f, 0.76f, MiniGamePalette.TEXT_MUTED);
-
-        if (!stateMachine.isResult()) {
-            return;
-        }
-
-        float resultWidth = 240f;
-        float resultHeight = 118f;
-        float resultX = MiniGameLayout.STAGE_X + ((MiniGameLayout.STAGE_WIDTH - resultWidth) * 0.5f);
-        float resultY = MiniGameLayout.STAGE_Y + 36f;
-        drawPanel(resultX, resultY, resultWidth, resultHeight, MiniGamePalette.PANEL_STRONG);
-        drawPanelOutline(resultX, resultY, resultWidth, resultHeight, MiniGamePalette.HIGHLIGHT_COLOR);
-        drawLine("결과 점수", resultX + 22f, resultY + 84f, 0.92f, MiniGamePalette.TEXT_ACCENT);
-        drawLine(String.valueOf(stateMachine.getFinalScore()), resultX + 22f, resultY + 34f, 1.86f, MiniGamePalette.TEXT_MINT);
-    }
-
-    @Override
-    protected String commandHint() {
-        return resolveCommandHint();
+        liveChipTimeLabel.setText(String.format("시간 %.1f초", stateMachine.getSecondsRemaining()));
+        liveChipShotLabel.setText(stateMachine.getCapturedShots() + " / " + PhotoTimeStateMachine.TOTAL_SHOTS + " 컷");
+        liveGuideBodyLabel.setText(resolvePhaseDescription());
+        liveGuideHintLabel.setText(resolveLiveHint());
+        liveResultValueLabel.setText(String.valueOf(stateMachine.getFinalScore()));
     }
 
     private String resolvePhaseDescription() {
@@ -249,5 +318,16 @@ public final class PhotoTimeScreen extends AbstractMiniGameScreen {
             case ACTIVE -> "방향키 이동  SPACE 촬영";
             case RESULT -> "H 저장  R 재시작  ESC 복귀";
         };
+    }
+
+    private enum PhotoAction {
+        EXIT,
+        PRIMARY,
+        LEFT,
+        RIGHT,
+        UP,
+        DOWN,
+        RESTART,
+        SAVE
     }
 }

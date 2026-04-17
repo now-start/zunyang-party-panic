@@ -3,16 +3,16 @@ package org.nowstart.zunyang.partypanic.adapter.in.renderer;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-
-import java.util.ArrayList;
-import java.util.List;
+import com.badlogic.gdx.utils.Align;
 
 public final class PixelUiRenderer {
     private final SpriteBatch batch;
     private final BitmapFont bodyFont;
     private final BitmapFont titleFont;
     private final Texture pixelTexture;
+    private final GlyphLayout glyphLayout = new GlyphLayout();
 
     public PixelUiRenderer(SpriteBatch batch, BitmapFont bodyFont, Texture pixelTexture) {
         this(batch, bodyFont, bodyFont, pixelTexture);
@@ -75,12 +75,7 @@ public final class PixelUiRenderer {
     }
 
     public void paragraph(String text, float x, float y, float width, float scale, Color color) {
-        List<String> lines = wrapText(text, width, scale);
-        float cursorY = y;
-        for (String line : lines) {
-            line(line, x, cursorY, scale, color);
-            cursorY -= 28f * scale;
-        }
+        drawWrappedText(bodyFont, text, x, y, width, scale, color);
     }
 
     public Color withAlpha(Color color, float alpha) {
@@ -90,34 +85,18 @@ public final class PixelUiRenderer {
     private void drawText(BitmapFont font, String text, float x, float y, float scale, Color color) {
         font.getData().setScale(scale);
         font.setColor(color);
-        font.draw(batch, text, x, y);
+        glyphLayout.setText(font, text, color, 0f, Align.left, false);
+        font.draw(batch, glyphLayout, x, y);
+        font.setColor(Color.WHITE);
         font.getData().setScale(1f);
     }
 
-    private List<String> wrapText(String text, float width, float scale) {
-        String[] words = text.split(" ");
-        List<String> lines = new ArrayList<>();
-        StringBuilder lineBuilder = new StringBuilder();
-
-        for (String word : words) {
-            String candidate = lineBuilder.length() == 0 ? word : lineBuilder + " " + word;
-            if (estimateWidth(candidate, scale) > width && lineBuilder.length() > 0) {
-                lines.add(lineBuilder.toString());
-                lineBuilder.setLength(0);
-                lineBuilder.append(word);
-                continue;
-            }
-            lineBuilder.setLength(0);
-            lineBuilder.append(candidate);
-        }
-
-        if (!lineBuilder.isEmpty()) {
-            lines.add(lineBuilder.toString());
-        }
-        return lines;
-    }
-
-    private float estimateWidth(String text, float scale) {
-        return text.length() * 11.2f * scale;
+    private void drawWrappedText(BitmapFont font, String text, float x, float y, float width, float scale, Color color) {
+        font.getData().setScale(scale);
+        font.setColor(color);
+        glyphLayout.setText(font, text, color, width, Align.left, true);
+        font.draw(batch, glyphLayout, x, y);
+        font.setColor(Color.WHITE);
+        font.getData().setScale(1f);
     }
 }

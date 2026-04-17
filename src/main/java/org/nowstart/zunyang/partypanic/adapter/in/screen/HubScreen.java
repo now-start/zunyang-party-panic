@@ -1,12 +1,12 @@
 package org.nowstart.zunyang.partypanic.adapter.in.screen;
 
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
+import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.ScreenUtils;
+import org.nowstart.zunyang.partypanic.adapter.in.input.HubInputAdapter;
 import org.nowstart.zunyang.partypanic.adapter.in.renderer.DialogueWindowRenderer;
 import org.nowstart.zunyang.partypanic.adapter.in.renderer.HubMapRenderer;
 import org.nowstart.zunyang.partypanic.adapter.in.renderer.PixelUiRenderer;
@@ -48,6 +48,7 @@ public final class HubScreen extends AbstractGameScreen {
     private final DialogueWindowRenderer dialogueWindow;
     private final String initialNotice;
     private final float mapX;
+    private final HubInputAdapter input = new HubInputAdapter();
 
     private GameState currentState;
     private float moveCooldown;
@@ -71,7 +72,7 @@ public final class HubScreen extends AbstractGameScreen {
         this.pixelTexture = assets.pixelTexture();
         this.portraitTexture = assets.hostTexture();
         this.ui = new PixelUiRenderer(batch, bodyFont, titleFont, pixelTexture);
-        this.mapRenderer = new HubMapRenderer(ui, progress, hubContext.eventResolver());
+        this.mapRenderer = new HubMapRenderer(ui, progress, hubContext.eventResolver(), currentState.gameMap(), mapX);
         this.dialogueWindow = new DialogueWindowRenderer(ui);
         this.playerDrawX = tileToScreenX(currentState.player().position().x());
         this.playerDrawY = tileToScreenY(currentState.player().position().y());
@@ -93,21 +94,38 @@ public final class HubScreen extends AbstractGameScreen {
         ScreenUtils.clear(0.10f, 0.08f, 0.10f, 1f);
 
         beginFrame();
-        mapRenderer.draw(currentState, mapX, playerDrawX, playerDrawY, showsOperationalUi());
+        mapRenderer.drawBackdropAndFrame();
+        endFrame();
+
+        mapRenderer.renderMap(camera);
+
+        beginFrame();
+        mapRenderer.drawOverlay(currentState, playerDrawX, playerDrawY, showsOperationalUi());
         drawDialogueWindow();
         endFrame();
     }
 
+    @Override
+    protected InputProcessor createInputProcessor() {
+        return input;
+    }
+
+    @Override
+    public void dispose() {
+        super.dispose();
+        mapRenderer.dispose();
+    }
+
     private boolean handleInput(float delta) {
         if (transientDialogueState != null) {
-            if (isConfirmPressed()) {
+            if (input.consumeConfirmRequested()) {
                 transientDialogueState = transientDialogueState.advance();
             }
             return true;
         }
 
         if (currentState.activeDialogue() != null) {
-            if (isConfirmPressed()) {
+            if (input.consumeConfirmRequested()) {
                 AdvanceDialogueResult result = advanceDialogueUseCase.advance();
                 currentState = result.state();
                 if (result.completedActivityId() != null) {
@@ -120,18 +138,18 @@ public final class HubScreen extends AbstractGameScreen {
 
         moveCooldown = Math.max(0f, moveCooldown - delta);
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+        if (input.consumeBackRequested()) {
             navigator.showTitle();
             return false;
         }
 
-        if (isConfirmPressed()) {
+        if (input.consumeConfirmRequested()) {
             InteractResult result = interactUseCase.interact();
             currentState = result.state();
             return true;
         }
 
-        Direction direction = readPressedDirection();
+        Direction direction = input.pressedDirection();
         if (direction == null) {
             return true;
         }
@@ -156,28 +174,6 @@ public final class HubScreen extends AbstractGameScreen {
         float dialogueTarget = hasVisibleDialogue() ? 1f : 0f;
         float dialogueAlpha = Math.min(1f, delta * DIALOGUE_LERP_SPEED);
         dialogueWindowProgress = MathUtils.lerp(dialogueWindowProgress, dialogueTarget, dialogueAlpha);
-    }
-
-    private boolean isConfirmPressed() {
-        return Gdx.input.isKeyJustPressed(Input.Keys.ENTER)
-                || Gdx.input.isKeyJustPressed(Input.Keys.SPACE)
-                || Gdx.input.isKeyJustPressed(Input.Keys.E);
-    }
-
-    private Direction readPressedDirection() {
-        if (Gdx.input.isKeyPressed(Input.Keys.LEFT) || Gdx.input.isKeyPressed(Input.Keys.A)) {
-            return Direction.LEFT;
-        }
-        if (Gdx.input.isKeyPressed(Input.Keys.RIGHT) || Gdx.input.isKeyPressed(Input.Keys.D)) {
-            return Direction.RIGHT;
-        }
-        if (Gdx.input.isKeyPressed(Input.Keys.UP) || Gdx.input.isKeyPressed(Input.Keys.W)) {
-            return Direction.UP;
-        }
-        if (Gdx.input.isKeyPressed(Input.Keys.DOWN) || Gdx.input.isKeyPressed(Input.Keys.S)) {
-            return Direction.DOWN;
-        }
-        return null;
     }
 
     private void drawDialogueWindow() {
