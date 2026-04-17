@@ -2,97 +2,30 @@ package org.nowstart.zunyang.partypanic.adapter.in.screen;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
-import com.badlogic.gdx.utils.ScreenUtils;
+import org.nowstart.zunyang.partypanic.adapter.in.renderer.MiniGameLayout;
+import org.nowstart.zunyang.partypanic.adapter.in.renderer.MiniGamePalette;
+import org.nowstart.zunyang.partypanic.adapter.in.runtime.GameAssets;
+import org.nowstart.zunyang.partypanic.application.port.out.GameNavigator;
 import org.nowstart.zunyang.partypanic.domain.activity.ActivityId;
 import org.nowstart.zunyang.partypanic.domain.minigame.PhotoTimeStateMachine;
 import org.nowstart.zunyang.partypanic.domain.progress.GameProgress;
-import org.nowstart.zunyang.partypanic.adapter.in.support.ScreenSupport;
-import org.nowstart.zunyang.partypanic.application.port.out.GameNavigator;
 
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
-
-public final class PhotoTimeScreen extends ScreenAdapter {
-    private static final float WINDOW_WIDTH = 1600f;
-    private static final float WINDOW_HEIGHT = 900f;
-    private static final float STAGE_X = 36f;
-    private static final float STAGE_Y = 116f;
-    private static final float STAGE_WIDTH = 1096f;
-    private static final float STAGE_HEIGHT = 644f;
-    private static final float PANEL_X = 1160f;
-    private static final float PANEL_Y = 116f;
-    private static final float PANEL_WIDTH = 404f;
-    private static final float PANEL_HEIGHT = 756f;
-    private static final float COMMAND_X = STAGE_X;
-    private static final float COMMAND_Y = 34f;
-    private static final float COMMAND_WIDTH = STAGE_WIDTH;
-    private static final float COMMAND_HEIGHT = 62f;
-
-    private static final Color TEXT_PRIMARY = new Color(0.97f, 0.93f, 0.85f, 1f);
-    private static final Color TEXT_MUTED = new Color(0.90f, 0.84f, 0.80f, 1f);
-    private static final Color TEXT_ACCENT = new Color(1.00f, 0.88f, 0.65f, 1f);
-    private static final Color TEXT_MINT = new Color(0.73f, 0.93f, 0.87f, 1f);
-    private static final Color TEXT_BLUE = new Color(0.72f, 0.87f, 1.00f, 1f);
-    private static final Color PANEL_COLOR = new Color(0.10f, 0.07f, 0.10f, 0.74f);
-    private static final Color PANEL_STRONG = new Color(0.14f, 0.09f, 0.13f, 0.84f);
-    private static final Color OVERLAY_COLOR = new Color(0.05f, 0.03f, 0.04f, 0.44f);
-    private static final Color STAGE_FRAME = new Color(0.18f, 0.10f, 0.14f, 0.45f);
-    private static final Color BORDER_COLOR = new Color(0.97f, 0.86f, 0.78f, 0.90f);
-    private static final Color HIGHLIGHT_COLOR = new Color(0.96f, 0.61f, 0.71f, 0.92f);
-
-    private final GameNavigator navigator;
-    private final GameProgress progress;
+public final class PhotoTimeScreen extends AbstractMiniGameScreen {
     private final PhotoTimeStateMachine stateMachine = new PhotoTimeStateMachine();
-    private final SpriteBatch batch = new SpriteBatch();
-    private final BitmapFont bodyFont;
-    private final BitmapFont titleFont;
-    private final Texture pixelTexture;
-    private final Texture backgroundTexture;
     private final Texture cardTexture;
     private final Texture hostTexture;
 
-    public PhotoTimeScreen(GameNavigator navigator, GameProgress progress) {
-        this.navigator = navigator;
-        this.progress = progress;
-        this.bodyFont = ScreenSupport.createBodyFont(buildFontCharacters());
-        this.titleFont = ScreenSupport.createTitleFont(buildFontCharacters());
-        this.pixelTexture = ScreenSupport.createPixelTexture();
-        this.backgroundTexture = ScreenSupport.loadTexture("assets/images/backgrounds/mint-cats-stage.png");
-        this.cardTexture = ScreenSupport.loadTexture("assets/images/choices/photo-time-card.png", "assets/images/events/photo-time-card.png");
-        this.hostTexture = ScreenSupport.loadTexture("assets/images/characters/zunyang-birthday-host.png");
+    public PhotoTimeScreen(GameNavigator navigator, GameProgress progress, GameAssets assets) {
+        super(navigator, progress, assets);
+        initializeUi("assets/images/backgrounds/mint-cats-stage.png");
+        this.cardTexture = assets.photoCardTexture();
+        this.hostTexture = assets.hostTexture();
     }
 
     @Override
-    public void render(float delta) {
-        if (!handleInput()) {
-            return;
-        }
-
-        stateMachine.update(delta);
-
-        ScreenUtils.clear(0.06f, 0.04f, 0.05f, 1f);
-
-        batch.begin();
-        drawBackdrop();
-        drawFrames();
-        drawPhotoStage();
-        if (showsOperationalUi()) {
-            drawStatusPanel();
-            drawCommandBar();
-        } else {
-            drawLiveHud();
-        }
-        batch.end();
-    }
-
-    private boolean handleInput() {
+    protected boolean handleInput() {
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             navigator.showHub("포토존에서 허브로 복귀했습니다.");
             return false;
@@ -135,35 +68,21 @@ public final class PhotoTimeScreen extends ScreenAdapter {
         return true;
     }
 
-    private void drawBackdrop() {
-        drawTextureCover(backgroundTexture, 0f, 0f, WINDOW_WIDTH, WINDOW_HEIGHT);
-        drawPanel(0f, 0f, WINDOW_WIDTH, WINDOW_HEIGHT, OVERLAY_COLOR);
+    @Override
+    protected void updateState(float delta) {
+        stateMachine.update(delta);
     }
 
-    private void drawFrames() {
-        drawPanel(STAGE_X - 8f, STAGE_Y - 8f, STAGE_WIDTH + 16f, STAGE_HEIGHT + 16f, STAGE_FRAME);
-        drawTextureCover(backgroundTexture, STAGE_X, STAGE_Y, STAGE_WIDTH, STAGE_HEIGHT);
-        drawPanel(STAGE_X, STAGE_Y, STAGE_WIDTH, STAGE_HEIGHT, new Color(0.03f, 0.02f, 0.03f, 0.14f));
-        drawPanelOutline(STAGE_X - 1f, STAGE_Y - 1f, STAGE_WIDTH + 2f, STAGE_HEIGHT + 2f, BORDER_COLOR);
-
-        if (showsOperationalUi()) {
-            drawPanel(PANEL_X, PANEL_Y, PANEL_WIDTH, PANEL_HEIGHT, PANEL_STRONG);
-            drawPanelOutline(PANEL_X, PANEL_Y, PANEL_WIDTH, PANEL_HEIGHT, BORDER_COLOR);
-
-            drawPanel(COMMAND_X, COMMAND_Y, COMMAND_WIDTH, COMMAND_HEIGHT, PANEL_STRONG);
-            drawPanelOutline(COMMAND_X, COMMAND_Y, COMMAND_WIDTH, COMMAND_HEIGHT, BORDER_COLOR);
-        }
-    }
-
-    private void drawPhotoStage() {
-        float titleX = STAGE_X + 24f;
-        float titleY = STAGE_Y + STAGE_HEIGHT - 18f;
-        float infoX = STAGE_X + 28f;
-        float infoY = STAGE_Y + STAGE_HEIGHT - 146f;
+    @Override
+    protected void drawMiniGameStage() {
+        float titleX = MiniGameLayout.STAGE_X + 24f;
+        float titleY = MiniGameLayout.STAGE_Y + MiniGameLayout.STAGE_HEIGHT - 18f;
+        float infoX = MiniGameLayout.STAGE_X + 28f;
+        float infoY = MiniGameLayout.STAGE_Y + MiniGameLayout.STAGE_HEIGHT - 146f;
         float infoWidth = 590f;
         float infoHeight = 104f;
-        float viewX = STAGE_X + 96f;
-        float viewY = STAGE_Y + 120f;
+        float viewX = MiniGameLayout.STAGE_X + 96f;
+        float viewY = MiniGameLayout.STAGE_Y + 120f;
         float viewWidth = 700f;
         float viewHeight = 404f;
         float hostHeight = 370f;
@@ -171,27 +90,27 @@ public final class PhotoTimeScreen extends ScreenAdapter {
         float hostX = viewX + 318f + (stateMachine.getTargetX() * 66f);
         float hostY = viewY + 20f + (stateMachine.getTargetY() * 40f);
 
-        drawTitleLine("포토존 카메라 미니게임", titleX, titleY, 1.20f, TEXT_ACCENT);
-        drawPanel(infoX, infoY, infoWidth, infoHeight, PANEL_COLOR);
-        drawPanelOutline(infoX, infoY, infoWidth, infoHeight, BORDER_COLOR);
-        drawParagraph(resolvePhaseDescription(), infoX + 18f, infoY + 58f, infoWidth - 36f, 0.96f, TEXT_PRIMARY);
-        drawParagraph(resolvePhaseHint(), infoX + 18f, infoY + 24f, infoWidth - 36f, 0.84f, TEXT_MUTED);
+        drawTitleLine("포토존 카메라 미니게임", titleX, titleY, 1.20f, MiniGamePalette.TEXT_ACCENT);
+        drawPanel(infoX, infoY, infoWidth, infoHeight, MiniGamePalette.PANEL_COLOR);
+        drawPanelOutline(infoX, infoY, infoWidth, infoHeight, MiniGamePalette.BORDER_COLOR);
+        drawParagraph(resolvePhaseDescription(), infoX + 18f, infoY + 58f, infoWidth - 36f, 0.96f, MiniGamePalette.TEXT_PRIMARY);
+        drawParagraph(resolvePhaseHint(), infoX + 18f, infoY + 24f, infoWidth - 36f, 0.84f, MiniGamePalette.TEXT_MUTED);
 
         drawPanel(viewX - 16f, viewY - 16f, viewWidth + 32f, viewHeight + 32f, new Color(0.12f, 0.08f, 0.11f, 0.76f));
         drawPanel(viewX, viewY, viewWidth, viewHeight, new Color(0.06f, 0.04f, 0.05f, 0.46f));
-        drawPanelOutline(viewX, viewY, viewWidth, viewHeight, BORDER_COLOR);
+        drawPanelOutline(viewX, viewY, viewWidth, viewHeight, MiniGamePalette.BORDER_COLOR);
 
         drawTextureFit(hostTexture, hostX, hostY, hostWidth, hostHeight);
         drawTargetFrame(viewX, viewY, viewWidth, viewHeight);
         drawCameraFrame(viewX, viewY, viewWidth, viewHeight);
 
         float cardSize = 170f;
-        float cardX = STAGE_X + STAGE_WIDTH - cardSize - 42f;
-        float cardY = STAGE_Y + 192f;
+        float cardX = MiniGameLayout.STAGE_X + MiniGameLayout.STAGE_WIDTH - cardSize - 42f;
+        float cardY = MiniGameLayout.STAGE_Y + 192f;
         drawPanel(cardX - 12f, cardY - 12f, cardSize + 24f, cardSize + 24f, new Color(0.14f, 0.08f, 0.12f, 0.72f));
         drawTextureFit(cardTexture, cardX, cardY, cardSize, cardSize);
-        drawPanelOutline(cardX, cardY, cardSize, cardSize, BORDER_COLOR);
-        drawLine("이번 포토 무드", cardX, cardY - 10f, 0.82f, TEXT_MUTED);
+        drawPanelOutline(cardX, cardY, cardSize, cardSize, MiniGamePalette.BORDER_COLOR);
+        drawLine("이번 포토 무드", cardX, cardY - 10f, 0.82f, MiniGamePalette.TEXT_MUTED);
     }
 
     private void drawTargetFrame(float viewX, float viewY, float viewWidth, float viewHeight) {
@@ -202,9 +121,9 @@ public final class PhotoTimeScreen extends ScreenAdapter {
         float x = centerX - (width * 0.5f);
         float y = centerY - (height * 0.5f);
 
-        drawPanelOutline(x, y, width, height, TEXT_MINT);
-        drawPanel(centerX - 2f, y - 12f, 4f, height + 24f, new Color(TEXT_MINT.r, TEXT_MINT.g, TEXT_MINT.b, 0.55f));
-        drawPanel(x - 12f, centerY - 2f, width + 24f, 4f, new Color(TEXT_MINT.r, TEXT_MINT.g, TEXT_MINT.b, 0.55f));
+        drawPanelOutline(x, y, width, height, MiniGamePalette.TEXT_MINT);
+        drawPanel(centerX - 2f, y - 12f, 4f, height + 24f, new Color(MiniGamePalette.TEXT_MINT.r, MiniGamePalette.TEXT_MINT.g, MiniGamePalette.TEXT_MINT.b, 0.55f));
+        drawPanel(x - 12f, centerY - 2f, width + 24f, 4f, new Color(MiniGamePalette.TEXT_MINT.r, MiniGamePalette.TEXT_MINT.g, MiniGamePalette.TEXT_MINT.b, 0.55f));
     }
 
     private void drawCameraFrame(float viewX, float viewY, float viewWidth, float viewHeight) {
@@ -215,69 +134,71 @@ public final class PhotoTimeScreen extends ScreenAdapter {
         float x = centerX - (width * 0.5f);
         float y = centerY - (height * 0.5f);
 
-        drawPanelOutline(x, y, width, height, HIGHLIGHT_COLOR);
-        drawPanel(centerX - 2f, y + 18f, 4f, height - 36f, HIGHLIGHT_COLOR);
-        drawPanel(x + 18f, centerY - 2f, width - 36f, 4f, HIGHLIGHT_COLOR);
+        drawPanelOutline(x, y, width, height, MiniGamePalette.HIGHLIGHT_COLOR);
+        drawPanel(centerX - 2f, y + 18f, 4f, height - 36f, MiniGamePalette.HIGHLIGHT_COLOR);
+        drawPanel(x + 18f, centerY - 2f, width - 36f, 4f, MiniGamePalette.HIGHLIGHT_COLOR);
     }
 
-    private void drawStatusPanel() {
-        float left = PANEL_X + 22f;
-        float top = PANEL_Y + PANEL_HEIGHT - 24f;
+    @Override
+    protected void drawOperationalUi() {
+        float left = MiniGameLayout.PANEL_X + 22f;
+        float top = MiniGameLayout.PANEL_Y + MiniGameLayout.PANEL_HEIGHT - 24f;
         float timeRatio = stateMachine.getSecondsRemaining() / PhotoTimeStateMachine.ACTIVE_SECONDS;
         float shotRatio = stateMachine.getCapturedShots() / (float) PhotoTimeStateMachine.TOTAL_SHOTS;
 
-        drawLine("포토존 상태", left, top, 1.16f, TEXT_ACCENT);
-        drawLine("단계 " + stateMachine.getPhase().name(), left, top - 34f, 0.92f, TEXT_PRIMARY);
-        drawLine("최고 점수 " + progress.getBestScore(ActivityId.PHOTO_TIME), left, top - 66f, 0.92f, TEXT_MINT);
+        drawLine("포토존 상태", left, top, 1.16f, MiniGamePalette.TEXT_ACCENT);
+        drawLine("단계 " + stateMachine.getPhase().name(), left, top - 34f, 0.92f, MiniGamePalette.TEXT_PRIMARY);
+        drawLine("최고 점수 " + progress.getBestScore(ActivityId.PHOTO_TIME), left, top - 66f, 0.92f, MiniGamePalette.TEXT_MINT);
 
-        drawLine("남은 시간", left, top - 126f, 0.96f, TEXT_PRIMARY);
-        drawPanel(left, top - 156f, PANEL_WIDTH - 52f, 18f, new Color(0.22f, 0.15f, 0.18f, 0.92f));
-        drawPanel(left, top - 156f, (PANEL_WIDTH - 52f) * timeRatio, 18f, TEXT_BLUE);
-        drawPanelOutline(left, top - 156f, PANEL_WIDTH - 52f, 18f, BORDER_COLOR);
-        drawLine(String.format("%.1f초", stateMachine.getSecondsRemaining()), left, top - 168f, 0.78f, TEXT_MUTED);
+        drawLine("남은 시간", left, top - 126f, 0.96f, MiniGamePalette.TEXT_PRIMARY);
+        drawPanel(left, top - 156f, MiniGameLayout.PANEL_WIDTH - 52f, 18f, new Color(0.22f, 0.15f, 0.18f, 0.92f));
+        drawPanel(left, top - 156f, (MiniGameLayout.PANEL_WIDTH - 52f) * timeRatio, 18f, MiniGamePalette.TEXT_BLUE);
+        drawPanelOutline(left, top - 156f, MiniGameLayout.PANEL_WIDTH - 52f, 18f, MiniGamePalette.BORDER_COLOR);
+        drawLine(String.format("%.1f초", stateMachine.getSecondsRemaining()), left, top - 168f, 0.78f, MiniGamePalette.TEXT_MUTED);
 
-        drawLine("촬영 진행", left, top - 214f, 0.96f, TEXT_PRIMARY);
-        drawPanel(left, top - 244f, PANEL_WIDTH - 52f, 18f, new Color(0.22f, 0.15f, 0.18f, 0.92f));
-        drawPanel(left, top - 244f, (PANEL_WIDTH - 52f) * shotRatio, 18f, HIGHLIGHT_COLOR);
-        drawPanelOutline(left, top - 244f, PANEL_WIDTH - 52f, 18f, BORDER_COLOR);
-        drawLine(stateMachine.getCapturedShots() + " / " + PhotoTimeStateMachine.TOTAL_SHOTS + " 컷", left, top - 256f, 0.78f, TEXT_MUTED);
+        drawLine("촬영 진행", left, top - 214f, 0.96f, MiniGamePalette.TEXT_PRIMARY);
+        drawPanel(left, top - 244f, MiniGameLayout.PANEL_WIDTH - 52f, 18f, new Color(0.22f, 0.15f, 0.18f, 0.92f));
+        drawPanel(left, top - 244f, (MiniGameLayout.PANEL_WIDTH - 52f) * shotRatio, 18f, MiniGamePalette.HIGHLIGHT_COLOR);
+        drawPanelOutline(left, top - 244f, MiniGameLayout.PANEL_WIDTH - 52f, 18f, MiniGamePalette.BORDER_COLOR);
+        drawLine(stateMachine.getCapturedShots() + " / " + PhotoTimeStateMachine.TOTAL_SHOTS + " 컷", left, top - 256f, 0.78f, MiniGamePalette.TEXT_MUTED);
 
-        drawLine("마지막 판정 " + stateMachine.getLastJudgement(), left, top - 312f, 0.92f, TEXT_PRIMARY);
-        drawLine("최근 점수 " + stateMachine.getLastShotScore(), left, top - 344f, 0.90f, TEXT_MINT);
+        drawLine("마지막 판정 " + stateMachine.getLastJudgement(), left, top - 312f, 0.92f, MiniGamePalette.TEXT_PRIMARY);
+        drawLine("최근 점수 " + stateMachine.getLastShotScore(), left, top - 344f, 0.90f, MiniGamePalette.TEXT_MINT);
 
-        float guideY = PANEL_Y + 194f;
-        drawPanel(left - 2f, guideY, PANEL_WIDTH - 44f, 150f, PANEL_COLOR);
-        drawPanelOutline(left - 2f, guideY, PANEL_WIDTH - 44f, 150f, BORDER_COLOR);
-        drawLine("조작", left + 14f, guideY + 120f, 0.98f, TEXT_ACCENT);
-        drawParagraph("방향키 또는 WASD로 카메라 프레임을 움직이고 SPACE로 셔터를 끊으세요. 민트 프레임과 분홍 프레임을 겹칠수록 점수가 높습니다.", left + 14f, guideY + 80f, PANEL_WIDTH - 74f, 0.84f, TEXT_PRIMARY);
-        drawParagraph("결과 화면에서 H를 누르면 허브에 점수를 저장합니다.", left + 14f, guideY + 30f, PANEL_WIDTH - 74f, 0.82f, TEXT_MUTED);
+        float guideY = MiniGameLayout.PANEL_Y + 194f;
+        drawPanel(left - 2f, guideY, MiniGameLayout.PANEL_WIDTH - 44f, 150f, MiniGamePalette.PANEL_COLOR);
+        drawPanelOutline(left - 2f, guideY, MiniGameLayout.PANEL_WIDTH - 44f, 150f, MiniGamePalette.BORDER_COLOR);
+        drawLine("조작", left + 14f, guideY + 120f, 0.98f, MiniGamePalette.TEXT_ACCENT);
+        drawParagraph("방향키 또는 WASD로 카메라 프레임을 움직이고 SPACE로 셔터를 끊으세요. 민트 프레임과 분홍 프레임을 겹칠수록 점수가 높습니다.", left + 14f, guideY + 80f, MiniGameLayout.PANEL_WIDTH - 74f, 0.84f, MiniGamePalette.TEXT_PRIMARY);
+        drawParagraph("결과 화면에서 H를 누르면 허브에 점수를 저장합니다.", left + 14f, guideY + 30f, MiniGameLayout.PANEL_WIDTH - 74f, 0.82f, MiniGamePalette.TEXT_MUTED);
 
         if (stateMachine.isResult()) {
-            float resultY = PANEL_Y + 82f;
-            drawLine("결과 점수", left, resultY + 82f, 0.98f, TEXT_ACCENT);
-            drawLine(String.valueOf(stateMachine.getFinalScore()), left, resultY + 34f, 1.84f, TEXT_MINT);
+            float resultY = MiniGameLayout.PANEL_Y + 82f;
+            drawLine("결과 점수", left, resultY + 82f, 0.98f, MiniGamePalette.TEXT_ACCENT);
+            drawLine(String.valueOf(stateMachine.getFinalScore()), left, resultY + 34f, 1.84f, MiniGamePalette.TEXT_MINT);
         }
     }
 
-    private void drawLiveHud() {
-        float chipX = WINDOW_WIDTH - 250f;
-        float chipY = WINDOW_HEIGHT - 126f;
+    @Override
+    protected void drawLiveHud() {
+        float chipX = MiniGameLayout.WINDOW_WIDTH - 250f;
+        float chipY = MiniGameLayout.WINDOW_HEIGHT - 126f;
         float chipWidth = 194f;
         float chipHeight = 92f;
-        float guideX = STAGE_X + 28f;
-        float guideY = STAGE_Y + 24f;
+        float guideX = MiniGameLayout.STAGE_X + 28f;
+        float guideY = MiniGameLayout.STAGE_Y + 24f;
         float guideWidth = 580f;
         float guideHeight = 84f;
 
-        drawPanel(chipX, chipY, chipWidth, chipHeight, PANEL_STRONG);
-        drawPanelOutline(chipX, chipY, chipWidth, chipHeight, BORDER_COLOR);
-        drawLine(String.format("%.1f초", stateMachine.getSecondsRemaining()), chipX + 16f, chipY + 58f, 0.94f, TEXT_PRIMARY);
-        drawLine(stateMachine.getCapturedShots() + " / " + PhotoTimeStateMachine.TOTAL_SHOTS + " 컷", chipX + 16f, chipY + 28f, 0.82f, TEXT_MINT);
+        drawPanel(chipX, chipY, chipWidth, chipHeight, MiniGamePalette.PANEL_STRONG);
+        drawPanelOutline(chipX, chipY, chipWidth, chipHeight, MiniGamePalette.BORDER_COLOR);
+        drawLine(String.format("%.1f초", stateMachine.getSecondsRemaining()), chipX + 16f, chipY + 58f, 0.94f, MiniGamePalette.TEXT_PRIMARY);
+        drawLine(stateMachine.getCapturedShots() + " / " + PhotoTimeStateMachine.TOTAL_SHOTS + " 컷", chipX + 16f, chipY + 28f, 0.82f, MiniGamePalette.TEXT_MINT);
 
-        drawPanel(guideX, guideY, guideWidth, guideHeight, PANEL_COLOR);
-        drawPanelOutline(guideX, guideY, guideWidth, guideHeight, BORDER_COLOR);
-        drawParagraph(resolvePhaseDescription(), guideX + 18f, guideY + 50f, guideWidth - 36f, 0.82f, TEXT_PRIMARY);
-        drawLine(resolveLiveHint(), guideX + 18f, guideY + 20f, 0.76f, TEXT_MUTED);
+        drawPanel(guideX, guideY, guideWidth, guideHeight, MiniGamePalette.PANEL_COLOR);
+        drawPanelOutline(guideX, guideY, guideWidth, guideHeight, MiniGamePalette.BORDER_COLOR);
+        drawParagraph(resolvePhaseDescription(), guideX + 18f, guideY + 50f, guideWidth - 36f, 0.82f, MiniGamePalette.TEXT_PRIMARY);
+        drawLine(resolveLiveHint(), guideX + 18f, guideY + 20f, 0.76f, MiniGamePalette.TEXT_MUTED);
 
         if (!stateMachine.isResult()) {
             return;
@@ -285,16 +206,17 @@ public final class PhotoTimeScreen extends ScreenAdapter {
 
         float resultWidth = 240f;
         float resultHeight = 118f;
-        float resultX = STAGE_X + ((STAGE_WIDTH - resultWidth) * 0.5f);
-        float resultY = STAGE_Y + 36f;
-        drawPanel(resultX, resultY, resultWidth, resultHeight, PANEL_STRONG);
-        drawPanelOutline(resultX, resultY, resultWidth, resultHeight, HIGHLIGHT_COLOR);
-        drawLine("결과 점수", resultX + 22f, resultY + 84f, 0.92f, TEXT_ACCENT);
-        drawLine(String.valueOf(stateMachine.getFinalScore()), resultX + 22f, resultY + 34f, 1.86f, TEXT_MINT);
+        float resultX = MiniGameLayout.STAGE_X + ((MiniGameLayout.STAGE_WIDTH - resultWidth) * 0.5f);
+        float resultY = MiniGameLayout.STAGE_Y + 36f;
+        drawPanel(resultX, resultY, resultWidth, resultHeight, MiniGamePalette.PANEL_STRONG);
+        drawPanelOutline(resultX, resultY, resultWidth, resultHeight, MiniGamePalette.HIGHLIGHT_COLOR);
+        drawLine("결과 점수", resultX + 22f, resultY + 84f, 0.92f, MiniGamePalette.TEXT_ACCENT);
+        drawLine(String.valueOf(stateMachine.getFinalScore()), resultX + 22f, resultY + 34f, 1.86f, MiniGamePalette.TEXT_MINT);
     }
 
-    private void drawCommandBar() {
-        drawLine(resolveCommandHint(), COMMAND_X + 22f, COMMAND_Y + 38f, 0.92f, TEXT_PRIMARY);
+    @Override
+    protected String commandHint() {
+        return resolveCommandHint();
     }
 
     private String resolvePhaseDescription() {
@@ -327,162 +249,5 @@ public final class PhotoTimeScreen extends ScreenAdapter {
             case ACTIVE -> "방향키 이동  SPACE 촬영";
             case RESULT -> "H 저장  R 재시작  ESC 복귀";
         };
-    }
-
-    private void drawPanel(float x, float y, float width, float height, Color color) {
-        batch.setColor(color);
-        batch.draw(pixelTexture, x, y, width, height);
-        batch.setColor(Color.WHITE);
-    }
-
-    private void drawPanelOutline(float x, float y, float width, float height, Color color) {
-        drawPanel(x, y, width, 2f, color);
-        drawPanel(x, y + height - 2f, width, 2f, color);
-        drawPanel(x, y, 2f, height, color);
-        drawPanel(x + width - 2f, y, 2f, height, color);
-    }
-
-    private void drawTextureCover(Texture texture, float x, float y, float width, float height) {
-        float targetAspect = width / height;
-        float textureAspect = texture.getWidth() / (float) texture.getHeight();
-        int srcX = 0;
-        int srcY = 0;
-        int srcWidth = texture.getWidth();
-        int srcHeight = texture.getHeight();
-
-        if (textureAspect > targetAspect) {
-            srcWidth = Math.round(texture.getHeight() * targetAspect);
-            srcX = (texture.getWidth() - srcWidth) / 2;
-        } else if (textureAspect < targetAspect) {
-            srcHeight = Math.round(texture.getWidth() / targetAspect);
-            srcY = (texture.getHeight() - srcHeight) / 2;
-        }
-
-        batch.draw(texture, x, y, width, height, srcX, srcY, srcWidth, srcHeight, false, false);
-    }
-
-    private void drawTextureFit(Texture texture, float x, float y, float width, float height) {
-        float scale = Math.min(width / texture.getWidth(), height / texture.getHeight());
-        float drawWidth = texture.getWidth() * scale;
-        float drawHeight = texture.getHeight() * scale;
-        float drawX = x + ((width - drawWidth) * 0.5f);
-        float drawY = y + ((height - drawHeight) * 0.5f);
-        batch.draw(texture, drawX, drawY, drawWidth, drawHeight);
-    }
-
-    private void drawParagraph(String text, float x, float y, float width, float scale, Color color) {
-        String[] words = text.split(" ");
-        StringBuilder lineBuilder = new StringBuilder();
-        float cursorY = y;
-
-        for (String word : words) {
-            String candidate = lineBuilder.length() == 0 ? word : lineBuilder + " " + word;
-            if (estimateWidth(candidate, scale) > width && lineBuilder.length() > 0) {
-                drawLine(lineBuilder.toString(), x, cursorY, scale, color);
-                lineBuilder.setLength(0);
-                lineBuilder.append(word);
-                cursorY -= 24f * scale;
-                continue;
-            }
-            lineBuilder.setLength(0);
-            lineBuilder.append(candidate);
-        }
-
-        if (!lineBuilder.isEmpty()) {
-            drawLine(lineBuilder.toString(), x, cursorY, scale, color);
-        }
-    }
-
-    private float estimateWidth(String text, float scale) {
-        return text.length() * 11.2f * scale;
-    }
-
-    private void drawLine(String text, float x, float y, float scale, Color color) {
-        drawText(bodyFont, text, x, y, scale, color);
-    }
-
-    private void drawTitleLine(String text, float x, float y, float scale, Color color) {
-        drawText(titleFont, text, x, y, scale, color);
-    }
-
-    private void drawText(BitmapFont font, String text, float x, float y, float scale, Color color) {
-        font.getData().setScale(scale);
-        font.setColor(color);
-        font.draw(batch, text, x, y);
-        font.setColor(TEXT_PRIMARY);
-        font.getData().setScale(1f);
-    }
-
-    private String buildFontCharacters() {
-        Set<Character> characters = new LinkedHashSet<>();
-        appendCharacters(characters, FreeTypeFontGenerator.DEFAULT_CHARS);
-
-        for (String text : List.of(
-                "포토존 카메라 미니게임",
-                "치즈냥의 포토존 타이밍을 맞춰 3장의 생일 기념 컷을 남겨야 합니다. 민트 가이드와 카메라 프레임을 최대한 겹치세요.",
-                "구도 중심을 맞춘 뒤 SPACE로 셔터를 끊으세요. 빠르게 정확하게 3컷을 찍으면 높은 점수가 나옵니다.",
-                "촬영이 끝났습니다. 좋은 컷을 건졌다면 허브에 저장하고 다음 준비 단계로 넘어가면 됩니다.",
-                "SPACE로 촬영 시작",
-                "방향키/WASD로 이동, SPACE로 셔터",
-                "H 저장 후 허브 복귀, R 재시작, ESC 허브 복귀",
-                "포토존 상태",
-                "단계 ",
-                "최고 점수 ",
-                "남은 시간",
-                "촬영 진행",
-                "마지막 판정 ",
-                "최근 점수 ",
-                "조작",
-                "방향키 또는 WASD로 카메라 프레임을 움직이고 SPACE로 셔터를 끊으세요. 민트 프레임과 분홍 프레임을 겹칠수록 점수가 높습니다.",
-                "결과 화면에서 H를 누르면 허브에 점수를 저장합니다.",
-                "결과 점수",
-                "현재 입력: SPACE 로 시작, ESC 로 허브 복귀",
-                "현재 입력: 방향키/WASD 로 이동, SPACE 로 촬영, ESC 로 허브 복귀",
-                "현재 입력: H 로 저장 후 허브 복귀, R 또는 SPACE 로 다시 시작, ESC 로 허브 복귀",
-                "SPACE 시작",
-                "방향키 이동  SPACE 촬영",
-                "H 저장  R 재시작  ESC 복귀",
-                "이번 포토 무드",
-                "포토존에서 허브로 복귀했습니다.",
-                "준비",
-                "촬영 시작",
-                "완벽",
-                "좋음",
-                "아슬아슬",
-                "흔들림",
-                "READY",
-                "ACTIVE",
-                "RESULT",
-                "컷"
-        )) {
-            appendCharacters(characters, text);
-        }
-
-        StringBuilder builder = new StringBuilder(characters.size());
-        for (Character character : characters) {
-            builder.append(character);
-        }
-        return builder.toString();
-    }
-
-    private void appendCharacters(Set<Character> characters, String text) {
-        for (int index = 0; index < text.length(); index += 1) {
-            characters.add(text.charAt(index));
-        }
-    }
-
-    private boolean showsOperationalUi() {
-        return navigator.showsOperationalUi();
-    }
-
-    @Override
-    public void dispose() {
-        batch.dispose();
-        bodyFont.dispose();
-        titleFont.dispose();
-        pixelTexture.dispose();
-        backgroundTexture.dispose();
-        cardTexture.dispose();
-        hostTexture.dispose();
     }
 }

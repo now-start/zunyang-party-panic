@@ -2,14 +2,15 @@ package org.nowstart.zunyang.partypanic.adapter.in.screen;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.ScreenUtils;
+import org.nowstart.zunyang.partypanic.adapter.in.renderer.DialogueWindowRenderer;
+import org.nowstart.zunyang.partypanic.adapter.in.renderer.HubMapRenderer;
+import org.nowstart.zunyang.partypanic.adapter.in.renderer.PixelUiRenderer;
+import org.nowstart.zunyang.partypanic.adapter.in.runtime.GameAssets;
 import org.nowstart.zunyang.partypanic.application.dto.AdvanceDialogueResult;
 import org.nowstart.zunyang.partypanic.application.dto.InteractResult;
 import org.nowstart.zunyang.partypanic.application.dto.MovePlayerCommand;
@@ -19,34 +20,25 @@ import org.nowstart.zunyang.partypanic.application.port.in.InteractUseCase;
 import org.nowstart.zunyang.partypanic.application.port.in.MovePlayerUseCase;
 import org.nowstart.zunyang.partypanic.application.port.out.GameNavigator;
 import org.nowstart.zunyang.partypanic.config.GameModule.HubContext;
-import org.nowstart.zunyang.partypanic.domain.event.GameEvent;
 import org.nowstart.zunyang.partypanic.domain.model.Dialogue;
 import org.nowstart.zunyang.partypanic.domain.model.Direction;
 import org.nowstart.zunyang.partypanic.domain.model.GameState;
 import org.nowstart.zunyang.partypanic.domain.progress.GameProgress;
-import org.nowstart.zunyang.partypanic.adapter.in.renderer.DialogueWindowRenderer;
-import org.nowstart.zunyang.partypanic.adapter.in.renderer.HubMapRenderer;
-import org.nowstart.zunyang.partypanic.adapter.in.renderer.PixelUiRenderer;
-import org.nowstart.zunyang.partypanic.adapter.in.support.ScreenSupport;
 
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 
-public final class HubScreen extends ScreenAdapter {
+public final class HubScreen extends AbstractGameScreen {
     private static final float MOVE_REPEAT_SECONDS = 0.12f;
     private static final float PLAYER_LERP_SPEED = 14f;
     private static final float DIALOGUE_LERP_SPEED = 10f;
     private static final Color DIALOGUE_TEXT_COLOR = new Color(0.96f, 0.92f, 0.87f, 1f);
     private static final Color DIALOGUE_META_COLOR = new Color(0.80f, 0.75f, 0.72f, 1f);
 
-    private final GameNavigator navigator;
     private final GameProgress progress;
     private final MovePlayerUseCase movePlayerUseCase;
     private final InteractUseCase interactUseCase;
     private final AdvanceDialogueUseCase advanceDialogueUseCase;
-    private final SpriteBatch batch = new SpriteBatch();
     private final BitmapFont bodyFont;
     private final BitmapFont titleFont;
     private final Texture pixelTexture;
@@ -65,8 +57,8 @@ public final class HubScreen extends ScreenAdapter {
     private float sceneTime;
     private TransientDialogueState transientDialogueState;
 
-    public HubScreen(GameNavigator navigator, GameProgress progress, String notice, HubContext hubContext) {
-        this.navigator = navigator;
+    public HubScreen(GameNavigator navigator, GameProgress progress, String notice, HubContext hubContext, GameAssets assets) {
+        super(navigator, assets);
         this.progress = progress;
         this.initialNotice = notice;
         this.currentState = hubContext.initialState();
@@ -74,10 +66,10 @@ public final class HubScreen extends ScreenAdapter {
         this.interactUseCase = hubContext.interactUseCase();
         this.advanceDialogueUseCase = hubContext.advanceDialogueUseCase();
         this.mapX = (HubMapRenderer.WINDOW_WIDTH - mapWidth()) * 0.5f;
-        this.bodyFont = ScreenSupport.createBodyFont(buildFontCharacters());
-        this.titleFont = ScreenSupport.createTitleFont(buildFontCharacters());
-        this.pixelTexture = ScreenSupport.createPixelTexture();
-        this.portraitTexture = ScreenSupport.loadTexture("assets/images/characters/zunyang-birthday-host.png");
+        this.bodyFont = assets.bodyFont();
+        this.titleFont = assets.titleFont();
+        this.pixelTexture = assets.pixelTexture();
+        this.portraitTexture = assets.hostTexture();
         this.ui = new PixelUiRenderer(batch, bodyFont, titleFont, pixelTexture);
         this.mapRenderer = new HubMapRenderer(ui, progress, hubContext.eventResolver());
         this.dialogueWindow = new DialogueWindowRenderer(ui);
@@ -100,10 +92,10 @@ public final class HubScreen extends ScreenAdapter {
 
         ScreenUtils.clear(0.10f, 0.08f, 0.10f, 1f);
 
-        batch.begin();
-        mapRenderer.draw(currentState, mapX, playerDrawX, playerDrawY, navigator.showsOperationalUi());
+        beginFrame();
+        mapRenderer.draw(currentState, mapX, playerDrawX, playerDrawY, showsOperationalUi());
         drawDialogueWindow();
-        batch.end();
+        endFrame();
     }
 
     private boolean handleInput(float delta) {
@@ -201,7 +193,7 @@ public final class HubScreen extends ScreenAdapter {
                 visibleDialogue.currentLine().speaker(),
                 visibleDialogue.currentLine().text(),
                 DIALOGUE_TEXT_COLOR,
-                navigator.showsOperationalUi()
+                showsOperationalUi()
                         ? (visibleDialogue.currentIndex() + 1) + " / " + visibleDialogue.lineCount()
                         : null,
                 DIALOGUE_META_COLOR
@@ -246,60 +238,6 @@ public final class HubScreen extends ScreenAdapter {
             pages.add("방향키로 한 칸씩 움직이고, 조사하고 싶은 오브젝트 정면에서 ENTER나 SPACE를 누르자.");
         }
         return pages;
-    }
-
-    private String buildFontCharacters() {
-        Set<Character> characters = new LinkedHashSet<>();
-        appendCharacters(characters, FreeTypeFontGenerator.DEFAULT_CHARS);
-
-        List<String> texts = new ArrayList<>();
-        texts.add(progress.getNextObjective());
-        texts.add(progress.getEndingTitle());
-        texts.add(progress.getEndingLine());
-        texts.addAll(resolveInitialNoticePages());
-        texts.addAll(List.of(
-                "치즈냥",
-                "생일 방송 준비방",
-                "전통 2D 쯔꾸르형 허브",
-                "정면 조사 가능",
-                "아직 잠겨 있음",
-                "test mode",
-                "좌표",
-                "바라보는 방향",
-                "앞 타일",
-                "방향키로 한 칸씩 움직이고, 조사하고 싶은 오브젝트 정면에서 ENTER나 SPACE를 누르자."
-        ));
-
-        for (GameEvent event : currentState.gameMap().events()) {
-            texts.add(event.title());
-            texts.add(event.lockedDialogue().currentLine().text());
-            event.interactionDialogue().lines().forEach(line -> texts.add(line.text()));
-        }
-
-        for (String text : texts) {
-            appendCharacters(characters, text);
-        }
-
-        StringBuilder builder = new StringBuilder(characters.size());
-        for (Character character : characters) {
-            builder.append(character);
-        }
-        return builder.toString();
-    }
-
-    private void appendCharacters(Set<Character> characters, String text) {
-        for (int index = 0; index < text.length(); index += 1) {
-            characters.add(text.charAt(index));
-        }
-    }
-
-    @Override
-    public void dispose() {
-        batch.dispose();
-        bodyFont.dispose();
-        titleFont.dispose();
-        pixelTexture.dispose();
-        portraitTexture.dispose();
     }
 
     private static final class TransientDialogueState {

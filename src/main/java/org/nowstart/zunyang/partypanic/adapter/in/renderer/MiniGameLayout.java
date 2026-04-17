@@ -1,8 +1,10 @@
 package org.nowstart.zunyang.partypanic.adapter.in.renderer;
 
+import org.nowstart.zunyang.partypanic.adapter.in.runtime.GameViewportConfig;
+
 public final class MiniGameLayout {
-    public static final float WINDOW_WIDTH = 1600f;
-    public static final float WINDOW_HEIGHT = 900f;
+    public static final float WINDOW_WIDTH = GameViewportConfig.WORLD_WIDTH;
+    public static final float WINDOW_HEIGHT = GameViewportConfig.WORLD_HEIGHT;
     public static final float STAGE_X = 36f;
     public static final float STAGE_Y = 116f;
     public static final float STAGE_WIDTH = 1096f;

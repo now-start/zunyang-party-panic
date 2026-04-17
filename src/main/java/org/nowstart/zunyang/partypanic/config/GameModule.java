@@ -6,12 +6,12 @@ import org.nowstart.zunyang.partypanic.application.port.in.AdvanceDialogueUseCas
 import org.nowstart.zunyang.partypanic.application.port.in.InteractUseCase;
 import org.nowstart.zunyang.partypanic.application.port.in.MovePlayerUseCase;
 import org.nowstart.zunyang.partypanic.application.port.out.LoadMapPort;
-import org.nowstart.zunyang.partypanic.application.service.EventResolver;
-import org.nowstart.zunyang.partypanic.application.service.MovementPolicy;
 import org.nowstart.zunyang.partypanic.application.usecase.AdvanceDialogueInteractor;
 import org.nowstart.zunyang.partypanic.application.usecase.InteractInteractor;
 import org.nowstart.zunyang.partypanic.application.usecase.MovePlayerInteractor;
 import org.nowstart.zunyang.partypanic.domain.model.GameState;
+import org.nowstart.zunyang.partypanic.domain.policy.EventResolver;
+import org.nowstart.zunyang.partypanic.domain.policy.MovementPolicy;
 import org.nowstart.zunyang.partypanic.domain.progress.GameProgress;
 
 public final class GameModule {

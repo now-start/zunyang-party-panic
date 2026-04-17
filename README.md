@@ -75,9 +75,9 @@ APP_MODE=live ./gradlew run
 org.nowstart.zunyang.partypanic
 ├── adapter
 │   ├── in
+│   │   ├── runtime
 │   │   ├── renderer
-│   │   ├── screen
-│   │   └── support
+│   │   └── screen
 │   └── out
 │       ├── map
 │       └── state
@@ -86,7 +86,6 @@ org.nowstart.zunyang.partypanic
 │   ├── port
 │   │   ├── in
 │   │   └── out
-│   ├── service
 │   └── usecase
 ├── config
 ├── domain
@@ -94,6 +93,7 @@ org.nowstart.zunyang.partypanic
 │   ├── event
 │   ├── minigame
 │   ├── model
+│   ├── policy
 │   ├── progress
 │   └── story
 ```
@@ -102,8 +102,8 @@ org.nowstart.zunyang.partypanic
 
 - `adapter.in`: libGDX 입력, 화면, 렌더링
 - `adapter.out`: 맵 로딩, 런타임 상태 저장 같은 외부 구현
-- `application`: use case 계약, 결과 DTO, 서비스
-- `domain`: 규칙, 상태, 미니게임 로직, 이벤트, 진행도, 스토리 콘텐츠
+- `application`: use case 계약, 결과 DTO, use case 구현
+- `domain`: 규칙, 상태, 정책, 미니게임 로직, 이벤트, 진행도, 스토리 콘텐츠
 - `config`: 객체 조립, 실행 모드 설정, 환경별 설정 로딩
 
 ## 패키지 및 클래스 설명
@@ -112,21 +112,30 @@ org.nowstart.zunyang.partypanic
 
 ### `org.nowstart.zunyang.partypanic`
 
-애플리케이션 진입점과 게임 전체 내비게이션을 가지는 루트 패키지입니다.
+데스크톱 실행 진입점을 두는 루트 패키지입니다.
 
 - [DesktopLauncher.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/DesktopLauncher.java): 데스크톱 실행 진입점입니다. libGDX `Lwjgl3Application`을 띄우고 창 크기, FPS, 타이틀을 설정합니다.
-- [PartyPanicGame.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/PartyPanicGame.java): 전체 게임의 화면 전환 허브입니다. `GameNavigator` 구현체로서 타이틀, 허브, 미니게임, 스토리 화면 이동과 활동 완료 후 복귀를 관리합니다.
+
+### `org.nowstart.zunyang.partypanic.adapter.in.runtime`
+
+libGDX 런타임과 애플리케이션 화면 흐름을 연결하는 인바운드 어댑터 패키지입니다.
+
+- [PartyPanicGame.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/adapter/in/runtime/PartyPanicGame.java): 전체 게임의 화면 전환 허브입니다. `GameNavigator` 구현체로서 타이틀, 허브, 미니게임, 스토리 화면 이동과 활동 완료 후 복귀를 관리합니다.
+- [GameAssets.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/adapter/in/runtime/GameAssets.java): libGDX `AssetManager`, 공용 `SpriteBatch`, 공용 UI 폰트와 텍스처를 한 번만 로드하고 화면에 제공합니다.
+- [GameAssetCatalog.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/adapter/in/runtime/GameAssetCatalog.java): 공용 폰트와 텍스처 경로를 한 곳에서 관리합니다.
+- [GameViewportConfig.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/adapter/in/runtime/GameViewportConfig.java): libGDX `FitViewport`와 데스크톱 창 크기에서 함께 쓰는 기준 해상도를 정의합니다.
 
 ### `org.nowstart.zunyang.partypanic.adapter.in.screen`
 
 libGDX `Screen` 구현체가 모여 있는 인바운드 어댑터 패키지입니다. 사용자의 키 입력을 받고 화면을 렌더링합니다.
 
-- [AbstractMiniGameScreen.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/adapter/in/screen/AbstractMiniGameScreen.java): 미니게임 공통 베이스 클래스입니다. 배경, 프레임, 폰트, 커맨드 바, 공통 dispose 처리를 제공합니다.
+- [AbstractGameScreen.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/adapter/in/screen/AbstractGameScreen.java): 공통 `OrthographicCamera`, `FitViewport`, `SpriteBatch` projection 적용을 담당하는 화면 베이스 클래스입니다.
+- [AbstractMiniGameScreen.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/adapter/in/screen/AbstractMiniGameScreen.java): 미니게임 공통 베이스 클래스입니다. 공유 `GameAssets`를 받아 배경, 프레임, 폰트, 커맨드 바 렌더링 루프를 제공합니다.
 - [TitleScreen.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/adapter/in/screen/TitleScreen.java): 타이틀 화면입니다. 진입 텍스트, 모드 안내, 시작/종료 입력을 처리합니다.
 - [HubScreen.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/adapter/in/screen/HubScreen.java): 준비방 허브 화면입니다. 플레이어 이동, 조사, 대사 진행, 추천 이벤트 표시, 허브 타일 렌더링을 담당합니다.
 - [PartyPanicScreen.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/adapter/in/screen/PartyPanicScreen.java): 방송 책상 정리 미니게임 화면입니다. `DeskSetupStateMachine`을 사용해 조절형 점수 게임을 렌더링합니다.
 - [CakeTableScreen.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/adapter/in/screen/CakeTableScreen.java): 케이크 밸런스 미니게임 화면입니다. `CakeBalanceStateMachine`을 사용해 좌우 밸런스 조정 게임을 렌더링합니다.
-- [PhotoTimeScreen.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/adapter/in/screen/PhotoTimeScreen.java): 포토존 촬영 미니게임 화면입니다. 프레임 이동과 촬영 판정을 렌더링합니다.
+- [PhotoTimeScreen.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/adapter/in/screen/PhotoTimeScreen.java): 포토존 촬영 미니게임 화면입니다. 공통 미니게임 베이스 위에서 프레임 이동과 촬영 판정을 렌더링합니다.
 - [StorySequenceScreen.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/adapter/in/screen/StorySequenceScreen.java): 스토리 챕터 전용 화면입니다. 페이지 단위 대사 진행과 챕터 완료 후 허브 복귀를 처리합니다.
 
 ### `org.nowstart.zunyang.partypanic.adapter.in.renderer`
@@ -139,12 +148,6 @@ libGDX 드로잉을 돕는 렌더링 유틸리티 패키지입니다.
 - [MiniGamePalette.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/adapter/in/renderer/MiniGamePalette.java): 미니게임 공통 색상 팔레트입니다.
 - [DialogueWindowRenderer.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/adapter/in/renderer/DialogueWindowRenderer.java): 인물 초상과 대사창을 함께 그리는 전용 렌더러입니다.
 - [HubMapRenderer.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/adapter/in/renderer/HubMapRenderer.java): 허브 타일, 이벤트, 플레이어, 위치/포커스 패널을 그리는 허브 전용 renderer입니다.
-
-### `org.nowstart.zunyang.partypanic.adapter.in.support`
-
-화면에서 반복 사용하는 리소스 생성과 로딩을 담당합니다.
-
-- [ScreenSupport.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/adapter/in/support/ScreenSupport.java): 프로젝트 내 폰트와 텍스처를 로드합니다. 현재 본문 폰트는 `NanumSquareRoundR.ttf`, 타이틀 폰트는 `GowunDodum-Regular.ttf`를 사용합니다.
 
 ### `org.nowstart.zunyang.partypanic.adapter.out.map`
 
@@ -191,13 +194,6 @@ use case 입출력 데이터를 담는 DTO 패키지입니다.
 - [InteractInteractor.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/application/usecase/InteractInteractor.java): 정면 이벤트를 찾고 잠금 상태에 따라 적절한 대사를 시작합니다.
 - [AdvanceDialogueInteractor.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/application/usecase/AdvanceDialogueInteractor.java): 대사 다음 줄 진행 또는 활동 완료 처리를 담당합니다.
 
-### `org.nowstart.zunyang.partypanic.application.service`
-
-use case 구현을 보조하는 서비스 패키지입니다.
-
-- [MovementPolicy.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/application/service/MovementPolicy.java): 특정 좌표로 이동 가능한지 판단합니다.
-- [EventResolver.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/application/service/EventResolver.java): 정면 이벤트와 추천 이벤트를 계산합니다.
-
 ### `org.nowstart.zunyang.partypanic.config`
 
 애플리케이션 조립을 담당하는 구성 패키지입니다.
@@ -233,6 +229,13 @@ use case 구현을 보조하는 서비스 패키지입니다.
 - [Dialogue.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/domain/model/Dialogue.java): 여러 줄 대사와 현재 인덱스를 관리합니다. 다음 줄 진행과 현재 줄 조회를 담당합니다.
 - [GameMap.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/domain/model/GameMap.java): 타일 레이아웃, 이벤트 목록, 시작 위치를 가진 허브 맵 모델입니다.
 - [GameState.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/domain/model/GameState.java): 맵, 플레이어, 현재 대사, 대사 후 진입할 활동 ID를 묶은 현재 게임 상태입니다.
+
+### `org.nowstart.zunyang.partypanic.domain.policy`
+
+허브 이동과 상호작용 판단에 필요한 도메인 정책 패키지입니다.
+
+- [MovementPolicy.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/domain/policy/MovementPolicy.java): 특정 좌표로 이동 가능한지 판단합니다.
+- [EventResolver.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/domain/policy/EventResolver.java): 정면 이벤트와 추천 이벤트를 계산합니다.
 
 ### `org.nowstart.zunyang.partypanic.domain.progress`
 
@@ -286,6 +289,7 @@ use case 구현을 보조하는 서비스 패키지입니다.
 ## 현재 구조에서 볼 포인트
 
 - 허브 로직은 `HubScreen -> application.usecase -> domain` 흐름으로 정리되어 있습니다.
-- 미니게임은 화면과 상태 머신을 분리해 두었고, `PhotoTimeScreen`은 아직 공통 미니게임 베이스 추출 여지가 남아 있습니다.
+- 화면 공통 자원은 `GameAssets`, 공통 좌표계와 카메라 적용은 `AbstractGameScreen`이 담당합니다.
+- 미니게임은 화면과 상태 머신을 분리해 두었고, 공통 무대 프레임은 `AbstractMiniGameScreen`과 `MiniGameChrome`으로 정리되어 있습니다.
 - 상태 저장은 아직 `InMemoryGameStateAdapter`만 사용하므로 세션을 종료하면 초기화됩니다.
 - 맵 로딩은 `StaticHubMapAdapter` 기반이라 데이터 파일 분리 여지가 남아 있습니다.

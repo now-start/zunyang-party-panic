@@ -4,10 +4,10 @@ import lombok.RequiredArgsConstructor;
 import org.nowstart.zunyang.partypanic.application.dto.InteractResult;
 import org.nowstart.zunyang.partypanic.application.port.in.InteractUseCase;
 import org.nowstart.zunyang.partypanic.application.port.out.GameStatePort;
-import org.nowstart.zunyang.partypanic.application.service.EventResolver;
 import org.nowstart.zunyang.partypanic.domain.activity.ActivityId;
 import org.nowstart.zunyang.partypanic.domain.event.GameEvent;
 import org.nowstart.zunyang.partypanic.domain.model.GameState;
+import org.nowstart.zunyang.partypanic.domain.policy.EventResolver;
 import org.nowstart.zunyang.partypanic.domain.progress.GameProgress;
 
 import java.util.Optional;

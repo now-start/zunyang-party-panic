@@ -5,10 +5,10 @@ import org.nowstart.zunyang.partypanic.application.dto.MovePlayerCommand;
 import org.nowstart.zunyang.partypanic.application.dto.MovePlayerResult;
 import org.nowstart.zunyang.partypanic.application.port.in.MovePlayerUseCase;
 import org.nowstart.zunyang.partypanic.application.port.out.GameStatePort;
-import org.nowstart.zunyang.partypanic.application.service.MovementPolicy;
 import org.nowstart.zunyang.partypanic.domain.model.GameState;
 import org.nowstart.zunyang.partypanic.domain.model.Player;
 import org.nowstart.zunyang.partypanic.domain.model.Position;
+import org.nowstart.zunyang.partypanic.domain.policy.MovementPolicy;
 
 @RequiredArgsConstructor
 public final class MovePlayerInteractor implements MovePlayerUseCase {

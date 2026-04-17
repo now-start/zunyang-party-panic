@@ -4,29 +4,24 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import org.nowstart.zunyang.partypanic.domain.activity.ActivityId;
 import org.nowstart.zunyang.partypanic.domain.minigame.CakeBalanceStateMachine;
 import org.nowstart.zunyang.partypanic.domain.progress.GameProgress;
 import org.nowstart.zunyang.partypanic.adapter.in.renderer.MiniGameLayout;
 import org.nowstart.zunyang.partypanic.adapter.in.renderer.MiniGamePalette;
-import org.nowstart.zunyang.partypanic.adapter.in.support.ScreenSupport;
+import org.nowstart.zunyang.partypanic.adapter.in.runtime.GameAssets;
 import org.nowstart.zunyang.partypanic.application.port.out.GameNavigator;
-
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
 
 public final class CakeTableScreen extends AbstractMiniGameScreen {
     private final CakeBalanceStateMachine stateMachine = new CakeBalanceStateMachine();
     private final Texture cakeTexture;
     private final Texture hostTexture;
 
-    public CakeTableScreen(GameNavigator navigator, GameProgress progress) {
-        super(navigator, progress);
-        initializeUi("assets/images/backgrounds/cake-rush-stage.png", buildFontCharacters());
-        this.cakeTexture = ScreenSupport.loadTexture("assets/images/events/cake-balance-card.png");
-        this.hostTexture = ScreenSupport.loadTexture("assets/images/characters/zunyang-birthday-host.png");
+    public CakeTableScreen(GameNavigator navigator, GameProgress progress, GameAssets assets) {
+        super(navigator, progress, assets);
+        initializeUi("assets/images/backgrounds/cake-rush-stage.png");
+        this.cakeTexture = assets.cakeCardTexture();
+        this.hostTexture = assets.hostTexture();
     }
 
     @Override
@@ -240,66 +235,5 @@ public final class CakeTableScreen extends AbstractMiniGameScreen {
             case ACTIVE -> "LEFT RIGHT 균형  S 급정리";
             case RESULT -> "H 저장  R 재시작  ESC 복귀";
         };
-    }
-
-    private String buildFontCharacters() {
-        Set<Character> characters = new LinkedHashSet<>();
-        appendCharacters(characters, FreeTypeFontGenerator.DEFAULT_CHARS);
-
-        for (String text : List.of(
-                "케이크 테이블 미니게임",
-                "치즈냥이 케이크 테이블 위 마지막 장식을 올리려 합니다. 시작하면 기울기와 안정도가 동시에 움직입니다.",
-                "케이크가 한쪽으로 기울면 안정도가 빠르게 깎입니다. 중앙 구간을 오래 유지해 복구 횟수를 챙기세요.",
-                "테이블 정리가 끝났습니다. 점수를 저장하고 허브로 돌아가면 준비 진행도에 바로 반영됩니다.",
-                "SPACE로 시작",
-                "LEFT/A, RIGHT/D, S/아래 방향키 사용",
-                "H 저장 후 허브 복귀, R 재시작, ESC 허브 복귀",
-                "케이크 상태",
-                "단계 ",
-                "최고 점수 ",
-                "안정도",
-                "남은 시간",
-                "복구 횟수 ",
-                "조작",
-                "LEFT/A 또는 RIGHT/D 로 케이크를 바로잡고, S 또는 아래 방향키로 급한 흔들림을 눌러 주세요.",
-                "결과 화면에서 H를 누르면 점수를 저장하고 허브로 돌아갑니다.",
-                "결과 점수",
-                "현재 입력: SPACE 로 시작, ESC 로 허브 복귀",
-                "현재 입력: LEFT/A, RIGHT/D 로 조정, S/아래 방향키로 급정리, ESC 로 허브 복귀",
-                "현재 입력: H 로 저장 후 허브 복귀, R 또는 SPACE 로 다시 시작, ESC 로 허브 복귀",
-                "SPACE 시작",
-                "LEFT RIGHT 균형  S 급정리",
-                "H 저장  R 재시작  ESC 복귀",
-                "안정 ",
-                "시간 ",
-                "기울기",
-                "좌 %.0f  |  우 %.0f",
-                "케이크 테이블에서 허브로 복귀했습니다.",
-                "점",
-                "초",
-                "READY",
-                "ACTIVE",
-                "RESULT"
-        )) {
-            appendCharacters(characters, text);
-        }
-
-        StringBuilder builder = new StringBuilder(characters.size());
-        for (Character character : characters) {
-            builder.append(character);
-        }
-        return builder.toString();
-    }
-
-    private void appendCharacters(Set<Character> characters, String text) {
-        for (int index = 0; index < text.length(); index += 1) {
-            characters.add(text.charAt(index));
-        }
-    }
-
-    @Override
-    protected void disposeResources() {
-        cakeTexture.dispose();
-        hostTexture.dispose();
     }
 }

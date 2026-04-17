@@ -4,27 +4,22 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import org.nowstart.zunyang.partypanic.domain.activity.ActivityId;
 import org.nowstart.zunyang.partypanic.domain.minigame.DeskSetupStateMachine;
 import org.nowstart.zunyang.partypanic.domain.progress.GameProgress;
 import org.nowstart.zunyang.partypanic.adapter.in.renderer.MiniGameLayout;
 import org.nowstart.zunyang.partypanic.adapter.in.renderer.MiniGamePalette;
-import org.nowstart.zunyang.partypanic.adapter.in.support.ScreenSupport;
+import org.nowstart.zunyang.partypanic.adapter.in.runtime.GameAssets;
 import org.nowstart.zunyang.partypanic.application.port.out.GameNavigator;
-
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
 
 public final class PartyPanicScreen extends AbstractMiniGameScreen {
     private final DeskSetupStateMachine stateMachine = new DeskSetupStateMachine();
     private final Texture hostTexture;
 
-    public PartyPanicScreen(GameNavigator navigator, GameProgress progress) {
-        super(navigator, progress);
-        initializeUi("assets/images/backgrounds/desk-party-stage.png", buildFontCharacters());
-        this.hostTexture = ScreenSupport.loadTexture("assets/images/characters/zunyang-birthday-host.png");
+    public PartyPanicScreen(GameNavigator navigator, GameProgress progress, GameAssets assets) {
+        super(navigator, progress, assets);
+        initializeUi("assets/images/backgrounds/desk-party-stage.png");
+        this.hostTexture = assets.hostTexture();
     }
 
     @Override
@@ -208,75 +203,5 @@ public final class PartyPanicScreen extends AbstractMiniGameScreen {
     @Override
     protected String commandHint() {
         return stateMachine.commandHint();
-    }
-
-    private String buildFontCharacters() {
-        Set<Character> characters = new LinkedHashSet<>();
-        appendCharacters(characters, FreeTypeFontGenerator.DEFAULT_CHARS);
-
-        for (String text : List.of(
-                "방송 책상 정리",
-                "책상 상태",
-                "단계",
-                "최고 점수",
-                "남은 시간",
-                "완료 진행",
-                "선택 중",
-                "안내",
-                "결과 점수",
-                "SPACE를 눌러 책상 정리를 시작하세요.",
-                "SPACE를 눌러 책상 정리를 다시 시작하세요.",
-                "첫 작업부터 맞춰 보자.",
-                "좋아. 적어도 방송은 시작할 수 있겠다.",
-                "시간이 다 됐다. 그래도 시작할 정도는 정리됐다.",
-                "민트 구간에 맞춘 뒤 SPACE로 고정하면 됩니다. 네 항목을 빠르게 정리할수록 점수가 올라갑니다.",
-                "방송 시작 직전 책상이 아직 덜 맞춰져 있습니다. 마이크, 조명, 메모, 무드를 순서대로 정리하세요.",
-                "책상 정리가 끝났습니다. 저장하고 허브로 돌아가면 다음 챕터가 열립니다.",
-                "SPACE 또는 ENTER로 시작",
-                "UP / DOWN 선택, LEFT / RIGHT 조정, SPACE 확정",
-                "H 또는 ENTER 저장, R 재시작, ESC 허브 복귀",
-                "SPACE / ENTER 시작 | ESC 허브 복귀",
-                "UP / DOWN 작업 선택 | LEFT / RIGHT 값 조정 | SPACE 확정 | ESC 허브 복귀",
-                "H / ENTER 저장 | R 재시작 | ESC 허브 복귀",
-                "SPACE 시작",
-                "UP DOWN 선택  LEFT RIGHT 조정  SPACE 확정",
-                "H 저장  R 재시작  ESC 복귀",
-                "수치를 조정했습니다.",
-                "은 이미 고정했습니다.",
-                "은 이미 완료했습니다.",
-                "이 아직 맞지 않습니다. 민트 구간에 맞춰 주세요.",
-                "고정 완료",
-                "확정 가능",
-                "조정 필요",
-                "현재 수치",
-                "항목",
-                "방송 책상에서 허브로 복귀했습니다.",
-                "UP / DOWN 으로 작업 선택, LEFT / RIGHT 로 수치 조정, SPACE 로 확정합니다.",
-                "결과 화면에서는 H 또는 ENTER로 저장, R로 재시작합니다."
-        )) {
-            appendCharacters(characters, text);
-        }
-
-        for (int index = 0; index < stateMachine.taskCount(); index += 1) {
-            appendCharacters(characters, stateMachine.taskTitle(index));
-            appendCharacters(characters, stateMachine.taskHint(index));
-        }
-
-        StringBuilder builder = new StringBuilder(characters.size());
-        for (Character character : characters) {
-            builder.append(character);
-        }
-        return builder.toString();
-    }
-
-    private void appendCharacters(Set<Character> characters, String text) {
-        for (int index = 0; index < text.length(); index += 1) {
-            characters.add(text.charAt(index));
-        }
-    }
-
-    @Override
-    protected void disposeResources() {
-        hostTexture.dispose();
     }
 }

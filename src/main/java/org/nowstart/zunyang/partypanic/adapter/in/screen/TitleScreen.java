@@ -2,26 +2,17 @@ package org.nowstart.zunyang.partypanic.adapter.in.screen;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.ScreenUtils;
 import org.nowstart.zunyang.partypanic.adapter.in.renderer.PixelUiRenderer;
-import org.nowstart.zunyang.partypanic.adapter.in.support.ScreenSupport;
+import org.nowstart.zunyang.partypanic.adapter.in.runtime.GameAssets;
+import org.nowstart.zunyang.partypanic.adapter.in.runtime.GameViewportConfig;
 import org.nowstart.zunyang.partypanic.application.port.out.GameNavigator;
 
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
-
-public final class TitleScreen extends ScreenAdapter {
-    private static final float WINDOW_WIDTH = 1600f;
-    private static final float WINDOW_HEIGHT = 900f;
-
+public final class TitleScreen extends AbstractGameScreen {
     private static final Color TEXT_PRIMARY = new Color(0.97f, 0.93f, 0.85f, 1f);
     private static final Color TEXT_MUTED = new Color(0.90f, 0.84f, 0.80f, 1f);
     private static final Color TEXT_ACCENT = new Color(1.00f, 0.88f, 0.65f, 1f);
@@ -30,8 +21,6 @@ public final class TitleScreen extends ScreenAdapter {
     private static final Color BORDER_COLOR = new Color(0.97f, 0.86f, 0.78f, 0.90f);
     private static final Color OVERLAY_COLOR = new Color(0.05f, 0.03f, 0.04f, 0.52f);
 
-    private final GameNavigator navigator;
-    private final SpriteBatch batch = new SpriteBatch();
     private final BitmapFont bodyFont;
     private final BitmapFont titleFont;
     private final Texture pixelTexture;
@@ -40,13 +29,13 @@ public final class TitleScreen extends ScreenAdapter {
     private final PixelUiRenderer ui;
     private float sceneTime;
 
-    public TitleScreen(GameNavigator navigator) {
-        this.navigator = navigator;
-        this.bodyFont = ScreenSupport.createBodyFont(buildFontCharacters());
-        this.titleFont = ScreenSupport.createTitleFont(buildFontCharacters());
-        this.pixelTexture = ScreenSupport.createPixelTexture();
-        this.backgroundTexture = ScreenSupport.loadTexture("assets/images/backgrounds/finale-stage.png");
-        this.hostTexture = ScreenSupport.loadTexture("assets/images/characters/zunyang-birthday-host.png");
+    public TitleScreen(GameNavigator navigator, GameAssets assets) {
+        super(navigator, assets);
+        this.bodyFont = assets.bodyFont();
+        this.titleFont = assets.titleFont();
+        this.pixelTexture = assets.pixelTexture();
+        this.backgroundTexture = assets.titleBackgroundTexture();
+        this.hostTexture = assets.hostTexture();
         this.ui = new PixelUiRenderer(batch, bodyFont, titleFont, pixelTexture);
     }
 
@@ -59,12 +48,12 @@ public final class TitleScreen extends ScreenAdapter {
 
         ScreenUtils.clear(0.06f, 0.04f, 0.05f, 1f);
 
-        batch.begin();
-        ui.textureCover(backgroundTexture, 0f, 0f, WINDOW_WIDTH, WINDOW_HEIGHT);
-        ui.panel(0f, 0f, WINDOW_WIDTH, WINDOW_HEIGHT, OVERLAY_COLOR);
+        beginFrame();
+        ui.textureCover(backgroundTexture, 0f, 0f, GameViewportConfig.WORLD_WIDTH, GameViewportConfig.WORLD_HEIGHT);
+        ui.panel(0f, 0f, GameViewportConfig.WORLD_WIDTH, GameViewportConfig.WORLD_HEIGHT, OVERLAY_COLOR);
         drawHero();
         drawTitleCard();
-        batch.end();
+        endFrame();
     }
 
     private boolean handleInput() {
@@ -91,7 +80,7 @@ public final class TitleScreen extends ScreenAdapter {
     }
 
     private void drawTitleCard() {
-        boolean operationalUi = navigator.showsOperationalUi();
+        boolean operationalUi = showsOperationalUi();
         float cardX = 86f;
         float cardY = 168f;
         float cardWidth = 652f;
@@ -128,44 +117,5 @@ public final class TitleScreen extends ScreenAdapter {
 
     private Color withAlpha(Color color, float alpha) {
         return new Color(color.r, color.g, color.b, alpha);
-    }
-
-    private String buildFontCharacters() {
-        Set<Character> characters = new LinkedHashSet<>();
-        appendCharacters(characters, FreeTypeFontGenerator.DEFAULT_CHARS);
-
-        for (String text : List.of(
-                "zunyang-party-panic",
-                "치즈냥 생일 팬게임",
-                "치즈냥이 직접 타일 기반 준비방을 걸으며 조사와 대사로 생일 방송 시작 직전의 장면을 정리하는 전통 2D 쯔꾸르 팬게임입니다.",
-                "현재 test 모드: 타일 좌표와 진행 정보 같은 검증용 정보가 추가 표시됩니다.",
-                "현재 live 모드: 4방향 이동과 하단 대사창 중심의 실제 플레이 화면으로 표시됩니다.",
-                "ENTER / SPACE  시작",
-                "ESC / Q  종료"
-        )) {
-            appendCharacters(characters, text);
-        }
-
-        StringBuilder builder = new StringBuilder(characters.size());
-        for (Character character : characters) {
-            builder.append(character);
-        }
-        return builder.toString();
-    }
-
-    private void appendCharacters(Set<Character> characters, String text) {
-        for (int index = 0; index < text.length(); index += 1) {
-            characters.add(text.charAt(index));
-        }
-    }
-
-    @Override
-    public void dispose() {
-        batch.dispose();
-        bodyFont.dispose();
-        titleFont.dispose();
-        pixelTexture.dispose();
-        backgroundTexture.dispose();
-        hostTexture.dispose();
     }
 }

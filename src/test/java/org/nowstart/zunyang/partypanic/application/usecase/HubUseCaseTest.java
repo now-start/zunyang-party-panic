@@ -6,8 +6,6 @@ import org.nowstart.zunyang.partypanic.application.dto.AdvanceDialogueResult;
 import org.nowstart.zunyang.partypanic.application.dto.InteractResult;
 import org.nowstart.zunyang.partypanic.application.dto.MovePlayerCommand;
 import org.nowstart.zunyang.partypanic.application.dto.MovePlayerResult;
-import org.nowstart.zunyang.partypanic.application.service.EventResolver;
-import org.nowstart.zunyang.partypanic.application.service.MovementPolicy;
 import org.nowstart.zunyang.partypanic.domain.activity.ActivityId;
 import org.nowstart.zunyang.partypanic.domain.event.DialogueEvent;
 import org.nowstart.zunyang.partypanic.domain.event.EventVisual;
@@ -17,6 +15,8 @@ import org.nowstart.zunyang.partypanic.domain.model.GameMap;
 import org.nowstart.zunyang.partypanic.domain.model.GameState;
 import org.nowstart.zunyang.partypanic.domain.model.Player;
 import org.nowstart.zunyang.partypanic.domain.model.Position;
+import org.nowstart.zunyang.partypanic.domain.policy.EventResolver;
+import org.nowstart.zunyang.partypanic.domain.policy.MovementPolicy;
 import org.nowstart.zunyang.partypanic.domain.progress.GameProgress;
 
 import java.util.List;

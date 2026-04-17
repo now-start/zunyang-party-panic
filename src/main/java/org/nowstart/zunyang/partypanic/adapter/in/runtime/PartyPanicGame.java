@@ -1,4 +1,4 @@
-package org.nowstart.zunyang.partypanic;
+package org.nowstart.zunyang.partypanic.adapter.in.runtime;
 
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Screen;
@@ -9,58 +9,54 @@ import org.nowstart.zunyang.partypanic.adapter.in.screen.PartyPanicScreen;
 import org.nowstart.zunyang.partypanic.adapter.in.screen.PhotoTimeScreen;
 import org.nowstart.zunyang.partypanic.adapter.in.screen.StorySequenceScreen;
 import org.nowstart.zunyang.partypanic.adapter.in.screen.TitleScreen;
+import org.nowstart.zunyang.partypanic.application.port.out.GameNavigator;
 import org.nowstart.zunyang.partypanic.config.GameConfig;
-import org.nowstart.zunyang.partypanic.config.GameConfigLoader;
 import org.nowstart.zunyang.partypanic.config.GameModule;
 import org.nowstart.zunyang.partypanic.domain.activity.ActivityId;
 import org.nowstart.zunyang.partypanic.domain.progress.GameProgress;
 import org.nowstart.zunyang.partypanic.domain.story.StoryChapterFactory;
-import org.nowstart.zunyang.partypanic.application.port.out.GameNavigator;
 
 public final class PartyPanicGame extends Game implements GameNavigator {
     @Getter
-    private final GameConfig config;
-    @Getter
     private final GameProgress progress = new GameProgress();
+    private final boolean operationalUi;
     private final StoryChapterFactory storyChapterFactory = new StoryChapterFactory();
     private final GameModule gameModule = new GameModule();
-
-    public PartyPanicGame() {
-        this(GameConfigLoader.load());
-    }
+    private GameAssets assets;
 
     public PartyPanicGame(GameConfig config) {
-        this.config = config;
+        this.operationalUi = config.showsOperationalUi();
     }
 
     @Override
     public void create() {
+        assets = GameAssets.load();
         showTitle();
     }
 
     @Override
     public boolean showsOperationalUi() {
-        return config.showsOperationalUi();
+        return operationalUi;
     }
 
     @Override
     public void showTitle() {
-        switchTo(new TitleScreen(this));
+        switchTo(new TitleScreen(this, assets));
     }
 
     @Override
     public void showHub(String notice) {
-        switchTo(new HubScreen(this, progress, notice, gameModule.createHubContext(progress)));
+        switchTo(new HubScreen(this, progress, notice, gameModule.createHubContext(progress), assets));
     }
 
     @Override
     public void openActivity(ActivityId activityId) {
         switch (activityId) {
-            case BROADCAST_DESK -> switchTo(new PartyPanicScreen(this, progress));
-            case CAKE_TABLE -> switchTo(new CakeTableScreen(this, progress));
-            case PHOTO_TIME -> switchTo(new PhotoTimeScreen(this, progress));
+            case BROADCAST_DESK -> switchTo(new PartyPanicScreen(this, progress, assets));
+            case CAKE_TABLE -> switchTo(new CakeTableScreen(this, progress, assets));
+            case PHOTO_TIME -> switchTo(new PhotoTimeScreen(this, progress, assets));
             case STORAGE_ROOM, BACKSTAGE, FAN_LETTER, FINALE_STAGE ->
-                    switchTo(new StorySequenceScreen(this, progress, storyChapterFactory.create(activityId, progress)));
+                    switchTo(new StorySequenceScreen(this, progress, storyChapterFactory.create(activityId, progress), assets));
         }
     }
 
@@ -93,6 +89,14 @@ public final class PartyPanicGame extends Game implements GameNavigator {
         setScreen(nextScreen);
         if (currentScreen != null) {
             currentScreen.dispose();
+        }
+    }
+
+    @Override
+    public void dispose() {
+        super.dispose();
+        if (assets != null) {
+            assets.dispose();
         }
     }
 }

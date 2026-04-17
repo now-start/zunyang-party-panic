@@ -1,15 +1,16 @@
 package org.nowstart.zunyang.partypanic.adapter.in.renderer;
 
 import com.badlogic.gdx.graphics.Color;
-import org.nowstart.zunyang.partypanic.application.service.EventResolver;
+import org.nowstart.zunyang.partypanic.adapter.in.runtime.GameViewportConfig;
 import org.nowstart.zunyang.partypanic.domain.event.EventVisual;
 import org.nowstart.zunyang.partypanic.domain.event.GameEvent;
 import org.nowstart.zunyang.partypanic.domain.model.GameState;
+import org.nowstart.zunyang.partypanic.domain.policy.EventResolver;
 import org.nowstart.zunyang.partypanic.domain.progress.GameProgress;
 
 public final class HubMapRenderer {
-    public static final float WINDOW_WIDTH = 1600f;
-    public static final float WINDOW_HEIGHT = 900f;
+    public static final float WINDOW_WIDTH = GameViewportConfig.WORLD_WIDTH;
+    public static final float WINDOW_HEIGHT = GameViewportConfig.WORLD_HEIGHT;
     public static final float MAP_Y = 164f;
     public static final int TILE_SIZE = 48;
 
