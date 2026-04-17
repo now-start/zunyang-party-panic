@@ -1,8 +1,7 @@
-package org.nowstart.zunyang.partypanic;
+package org.nowstart.zunyang.partypanic.config.bootstrap;
 
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
-import org.nowstart.zunyang.partypanic.adapter.in.runtime.PartyPanicGame;
 import org.nowstart.zunyang.partypanic.adapter.in.runtime.GameViewportConfig;
 import org.nowstart.zunyang.partypanic.config.GameConfig;
 import org.nowstart.zunyang.partypanic.config.GameConfigLoader;

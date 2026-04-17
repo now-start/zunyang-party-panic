@@ -10,6 +10,7 @@ ext {
     lwjglVersion = '3.4.0'
     junitVersion = '5.10.2'
     lombokVersion = '1.18.44'
+    archUnitVersion = '1.4.1'
 }
 
 repositories {
@@ -33,13 +34,14 @@ dependencies {
     annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
 
     testImplementation "org.junit.jupiter:junit-jupiter:${junitVersion}"
+    testImplementation "com.tngtech.archunit:archunit-junit5:${archUnitVersion}"
     testRuntimeOnly "org.junit.platform:junit-platform-launcher"
     testCompileOnly "org.projectlombok:lombok:${lombokVersion}"
     testAnnotationProcessor "org.projectlombok:lombok:${lombokVersion}"
 }
 
 application {
-    mainClass = 'org.nowstart.zunyang.partypanic.DesktopLauncher'
+    mainClass = 'org.nowstart.zunyang.partypanic.config.bootstrap.DesktopLauncher'
     applicationDefaultJvmArgs = [
             '--enable-native-access=ALL-UNNAMED'
     ] + (System.getProperty('os.name').toLowerCase().contains('mac')

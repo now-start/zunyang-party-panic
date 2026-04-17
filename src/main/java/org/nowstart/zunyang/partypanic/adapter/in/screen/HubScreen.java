@@ -12,6 +12,7 @@ import org.nowstart.zunyang.partypanic.adapter.in.renderer.HubMapRenderer;
 import org.nowstart.zunyang.partypanic.adapter.in.renderer.PixelUiRenderer;
 import org.nowstart.zunyang.partypanic.adapter.in.runtime.GameAssets;
 import org.nowstart.zunyang.partypanic.application.dto.AdvanceDialogueResult;
+import org.nowstart.zunyang.partypanic.application.dto.HubContext;
 import org.nowstart.zunyang.partypanic.application.dto.InteractResult;
 import org.nowstart.zunyang.partypanic.application.dto.MovePlayerCommand;
 import org.nowstart.zunyang.partypanic.application.dto.MovePlayerResult;
@@ -19,7 +20,6 @@ import org.nowstart.zunyang.partypanic.application.port.in.AdvanceDialogueUseCas
 import org.nowstart.zunyang.partypanic.application.port.in.InteractUseCase;
 import org.nowstart.zunyang.partypanic.application.port.in.MovePlayerUseCase;
 import org.nowstart.zunyang.partypanic.application.port.out.GameNavigator;
-import org.nowstart.zunyang.partypanic.config.GameModule.HubContext;
 import org.nowstart.zunyang.partypanic.domain.model.Dialogue;
 import org.nowstart.zunyang.partypanic.domain.model.Direction;
 import org.nowstart.zunyang.partypanic.domain.model.GameState;

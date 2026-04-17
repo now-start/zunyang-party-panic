@@ -90,6 +90,7 @@ org.nowstart.zunyang.partypanic
 │   │   └── out
 │   └── usecase
 ├── config
+│   └── bootstrap
 ├── domain
 │   ├── activity
 │   ├── event
@@ -106,23 +107,16 @@ org.nowstart.zunyang.partypanic
 - `adapter.out`: 맵 로딩, 런타임 상태 저장 같은 외부 구현
 - `application`: use case 계약, 결과 DTO, use case 구현
 - `domain`: 규칙, 상태, 정책, 미니게임 로직, 이벤트, 진행도, 스토리 콘텐츠
-- `config`: 객체 조립, 실행 모드 설정, 환경별 설정 로딩
+- `config`: 객체 조립, 실행 모드 설정, 부트스트랩, 환경별 설정 로딩
 
 ## 패키지 및 클래스 설명
 
 아래 설명은 현재 소스 트리를 기준으로 정리했습니다.
 
-### `org.nowstart.zunyang.partypanic`
-
-데스크톱 실행 진입점을 두는 루트 패키지입니다.
-
-- [DesktopLauncher.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/DesktopLauncher.java): 데스크톱 실행 진입점입니다. libGDX `Lwjgl3Application`을 띄우고 창 크기, FPS, 타이틀을 설정합니다.
-
 ### `org.nowstart.zunyang.partypanic.adapter.in.runtime`
 
 libGDX 런타임과 애플리케이션 화면 흐름을 연결하는 인바운드 어댑터 패키지입니다.
 
-- [PartyPanicGame.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/adapter/in/runtime/PartyPanicGame.java): 전체 게임의 화면 전환 허브입니다. `GameNavigator` 구현체로서 타이틀, 허브, 미니게임, 스토리 화면 이동과 활동 완료 후 복귀를 관리합니다.
 - [GameAssets.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/adapter/in/runtime/GameAssets.java): libGDX `AssetManager`, 공용 `SpriteBatch`, 공용 UI 폰트와 텍스처를 한 번만 로드하고 화면에 제공합니다.
 - [GameAssetCatalog.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/adapter/in/runtime/GameAssetCatalog.java): 공용 폰트와 텍스처 경로를 한 곳에서 관리합니다.
 - [GameViewportConfig.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/adapter/in/runtime/GameViewportConfig.java): libGDX `FitViewport`와 데스크톱 창 크기에서 함께 쓰는 기준 해상도를 정의합니다.
@@ -201,6 +195,7 @@ use case 입출력 데이터를 담는 DTO 패키지입니다.
 - [MovePlayerResult.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/application/dto/MovePlayerResult.java): 이동 후 상태와 이동 성공 여부를 담습니다.
 - [InteractResult.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/application/dto/InteractResult.java): 조사 결과, 대사 시작 여부, 잠금 해제 여부, 다음 활동 ID를 담습니다.
 - [AdvanceDialogueResult.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/application/dto/AdvanceDialogueResult.java): 대사 진행 후 상태, 계속 대사 중인지 여부, 완료된 활동 ID를 담습니다.
+- [HubContext.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/application/dto/HubContext.java): 허브 화면이 필요로 하는 초기 상태, 이벤트 해석기, use case 묶음을 전달하는 조립 결과입니다.
 
 ### `org.nowstart.zunyang.partypanic.application.usecase`
 
@@ -218,7 +213,13 @@ use case 입출력 데이터를 담는 DTO 패키지입니다.
 - [GameConfig.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/config/GameConfig.java): 현재 모드를 감싸고 화면 표시 규칙과 창 제목 suffix를 제공합니다.
 - [GameConfigLoader.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/config/GameConfigLoader.java): 프로퍼티, 환경변수, 리소스 파일을 읽어 `GameConfig`를 만듭니다.
 - [GameModule.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/config/GameModule.java): 허브에 필요한 맵, 상태 저장소, 이벤트 해석기, use case 구현체를 연결합니다.
-- `GameModule.HubContext`: `HubScreen`이 필요로 하는 허브 초기 상태와 use case 묶음을 전달하는 조립 결과입니다.
+
+### `org.nowstart.zunyang.partypanic.config.bootstrap`
+
+조립된 객체를 실제 libGDX 앱으로 실행하는 부트스트랩 패키지입니다.
+
+- [DesktopLauncher.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/config/bootstrap/DesktopLauncher.java): 데스크톱 실행 진입점입니다. 설정을 로드하고 libGDX `Lwjgl3Application`을 시작합니다.
+- [PartyPanicGame.java](/Users/moon/IdeaProjects/demo4/src/main/java/org/nowstart/zunyang/partypanic/config/bootstrap/PartyPanicGame.java): 전체 게임의 화면 전환 허브입니다. `GameNavigator` 구현체로서 타이틀, 허브, 미니게임, 스토리 화면 이동과 활동 완료 후 복귀를 관리합니다.
 
 ### `org.nowstart.zunyang.partypanic.domain.activity`
 

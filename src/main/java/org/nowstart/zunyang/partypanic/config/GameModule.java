@@ -2,6 +2,7 @@ package org.nowstart.zunyang.partypanic.config;
 
 import org.nowstart.zunyang.partypanic.adapter.out.map.StaticHubMapAdapter;
 import org.nowstart.zunyang.partypanic.adapter.out.state.InMemoryGameStateAdapter;
+import org.nowstart.zunyang.partypanic.application.dto.HubContext;
 import org.nowstart.zunyang.partypanic.application.port.in.AdvanceDialogueUseCase;
 import org.nowstart.zunyang.partypanic.application.port.in.InteractUseCase;
 import org.nowstart.zunyang.partypanic.application.port.in.MovePlayerUseCase;
@@ -27,14 +28,5 @@ public final class GameModule {
         AdvanceDialogueUseCase advanceDialogueUseCase = new AdvanceDialogueInteractor(gameStatePort);
 
         return new HubContext(initialState, eventResolver, movePlayerUseCase, interactUseCase, advanceDialogueUseCase);
-    }
-
-    public record HubContext(
-            GameState initialState,
-            EventResolver eventResolver,
-            MovePlayerUseCase movePlayerUseCase,
-            InteractUseCase interactUseCase,
-            AdvanceDialogueUseCase advanceDialogueUseCase
-    ) {
     }
 }

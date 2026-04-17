@@ -1,8 +1,9 @@
-package org.nowstart.zunyang.partypanic.adapter.in.runtime;
+package org.nowstart.zunyang.partypanic.config.bootstrap;
 
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Screen;
 import lombok.Getter;
+import org.nowstart.zunyang.partypanic.adapter.in.runtime.GameAssets;
 import org.nowstart.zunyang.partypanic.adapter.in.screen.CakeTableScreen;
 import org.nowstart.zunyang.partypanic.adapter.in.screen.HubScreen;
 import org.nowstart.zunyang.partypanic.adapter.in.screen.PartyPanicScreen;
