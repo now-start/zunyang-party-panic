@@ -24,6 +24,7 @@ import org.nowstart.zunyang.partypanic.adapter.out.save.InMemorySignalConsoleSta
 import org.nowstart.zunyang.partypanic.adapter.out.save.RuntimeChapterStateAdapter;
 import org.nowstart.zunyang.partypanic.adapter.out.save.RuntimeHubStateAdapter;
 import org.nowstart.zunyang.partypanic.adapter.out.save.RuntimeSessionSnapshotAdapter;
+import org.nowstart.zunyang.partypanic.adapter.out.save.SessionPreferencesSchemaManager;
 import org.nowstart.zunyang.partypanic.application.chapter.AdvanceChapterInteractor;
 import org.nowstart.zunyang.partypanic.application.chapter.CompleteChapterInteractor;
 import org.nowstart.zunyang.partypanic.application.chapter.SkipChapterInteractor;
@@ -70,6 +71,8 @@ public final class GameModule {
     private final RuntimeHubStateAdapter runtimeHubStateAdapter = new RuntimeHubStateAdapter();
     private final RuntimeChapterStateAdapter runtimeChapterStateAdapter = new RuntimeChapterStateAdapter();
     private final RuntimeSessionSnapshotAdapter runtimeSessionSnapshotAdapter = new RuntimeSessionSnapshotAdapter();
+    private final SessionPreferencesSchemaManager sessionPreferencesSchemaManager =
+        new SessionPreferencesSchemaManager();
     private final InMemorySignalConsoleStateAdapter inMemorySignalConsoleStateAdapter = new InMemorySignalConsoleStateAdapter();
     private final InMemoryPropsArchiveStateAdapter inMemoryPropsArchiveStateAdapter = new InMemoryPropsArchiveStateAdapter();
     private final InMemoryCenterpieceTableStateAdapter inMemoryCenterpieceTableStateAdapter =
@@ -233,6 +236,7 @@ public final class GameModule {
     public void startGame() {
         if (Gdx.app != null) {
             Preferences preferences = Gdx.app.getPreferences(SESSION_PREFERENCES_NAME);
+            sessionPreferencesSchemaManager.ensureCurrentSchema(preferences);
             runtimeSessionSnapshotAdapter.bindToPreferences(preferences);
             runtimeHubStateAdapter.bindToPreferences(preferences, previewHubLayoutAdapter);
             runtimeChapterStateAdapter.bindToPreferences(preferences, resourceChapterScriptAdapter);
