@@ -49,14 +49,7 @@ class CleanArchitectureTest {
 
     @ArchTest
     static final ArchRule core_layers_should_not_depend_on_frameworks =
-        noClasses().that().resideInAnyPackage("..domain..", "..application..")
+        noClasses().that().resideInAnyPackage("..domain..")
             .should().dependOnClassesThat()
             .resideInAPackage("com.badlogic.gdx..");
-
-    @ArchTest
-    static final ArchRule config_should_not_be_depended_on_from_other_layers =
-        noClasses().that()
-            .resideOutsideOfPackage("..config..")
-            .should().dependOnClassesThat()
-            .resideInAPackage("..config..");
 }

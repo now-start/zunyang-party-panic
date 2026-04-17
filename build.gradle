@@ -41,7 +41,7 @@ dependencies {
 }
 
 application {
-    mainClass = 'org.nowstart.zunyang.partypanic.config.bootstrap.DesktopLauncher'
+    mainClass = 'org.nowstart.zunyang.partypanic.DesktopLauncher'
     applicationDefaultJvmArgs = [
             '--enable-native-access=ALL-UNNAMED'
     ] + (System.getProperty('os.name').toLowerCase().contains('mac')

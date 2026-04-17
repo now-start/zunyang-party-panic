@@ -38,6 +38,8 @@ out/
 
 ### Local tooling ###
 .playwright-mcp/
+.codex
+.gradlew-unix
 local.properties
 .env
 secrets/
