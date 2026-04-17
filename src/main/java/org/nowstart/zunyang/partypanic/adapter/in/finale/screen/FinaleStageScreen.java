@@ -7,9 +7,9 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
+import org.nowstart.zunyang.partypanic.adapter.in.common.ui.ActivityScreenScaffold;
 import org.nowstart.zunyang.partypanic.adapter.in.common.ui.SampleFontId;
 import org.nowstart.zunyang.partypanic.adapter.in.common.ui.SampleFontLibrary;
 import org.nowstart.zunyang.partypanic.adapter.in.common.ui.SampleTextureId;
@@ -25,10 +25,6 @@ import org.nowstart.zunyang.partypanic.domain.common.Direction;
 
 public final class FinaleStageScreen extends ScreenAdapter {
 
-    private static final float MARGIN = 48f;
-    private static final float GRID_HEIGHT = 420f;
-    private static final float STATUS_HEIGHT = 180f;
-
     private final StartFinaleStageUseCase startFinaleStageUseCase;
     private final MoveFinaleActorUseCase moveFinaleActorUseCase;
     private final InspectFinaleCheckpointUseCase inspectFinaleCheckpointUseCase;
@@ -40,6 +36,7 @@ public final class FinaleStageScreen extends ScreenAdapter {
     private final BitmapFont titleFont = fontLibrary.font(SampleFontId.TITLE);
     private final BitmapFont bodyFont = fontLibrary.font(SampleFontId.COMPACT);
     private final SampleTextureLibrary textureLibrary = new SampleTextureLibrary();
+    private final ActivityScreenScaffold scaffold = new ActivityScreenScaffold();
 
     private FinaleStageViewResult finaleView;
 
@@ -71,17 +68,33 @@ public final class FinaleStageScreen extends ScreenAdapter {
 
         float worldWidth = viewport.getWorldWidth();
         float worldHeight = viewport.getWorldHeight();
+        ActivityScreenScaffold.ActivityFrame frame =
+            scaffold.frame(worldWidth, worldHeight, finaleView.width(), finaleView.height());
 
         batch.begin();
-        batch.setColor(Color.WHITE);
-        batch.draw(textureLibrary.region(SampleTextureId.FINALE_STAGE), 0f, 0f, worldWidth, worldHeight);
-
-        titleFont.draw(batch, finaleView.title(), MARGIN, worldHeight - 36f);
-        bodyFont.draw(batch, finaleView.instructions(), MARGIN, worldHeight - 76f);
-        bodyFont.draw(batch, "target: 개장 직전 핵심 점검 셋을 마치고 마지막 신호를 보낸다", MARGIN, worldHeight - 108f);
-
-        drawStage(worldWidth, worldHeight);
-        drawStatusPanel(worldWidth);
+        scaffold.drawHeader(
+            batch,
+            titleFont,
+            bodyFont,
+            textureLibrary,
+            frame,
+            SampleTextureId.FINALE_STAGE,
+            finaleView.title(),
+            finaleView.instructions(),
+            "target: 개장 직전 핵심 점검 셋을 마치고 마지막 신호를 보낸다"
+        );
+        drawStage(frame);
+        scaffold.drawStatusPanel(
+            batch,
+            bodyFont,
+            textureLibrary,
+            frame,
+            finaleView.statusMessage(),
+            "checks: " + finaleView.checkedRequiredCount() + " / " + finaleView.requiredCount(),
+            finaleView.readyToReturn()
+                ? "enter로 마지막 개장 신호를 확정한다"
+                : "지점 앞에서 z로 최종 점검을 진행한다"
+        );
         batch.end();
     }
 
@@ -106,37 +119,34 @@ public final class FinaleStageScreen extends ScreenAdapter {
         }
     }
 
-    private void drawStage(float worldWidth, float worldHeight) {
-        float gridBottom = MARGIN + STATUS_HEIGHT + 24f;
-        float gridWidth = worldWidth - (MARGIN * 2f);
-        float cellWidth = gridWidth / finaleView.width();
-        float cellHeight = GRID_HEIGHT / finaleView.height();
-        float stageTop = gridBottom + GRID_HEIGHT;
-
-        batch.setColor(Color.valueOf("F3E9FF"));
-        batch.draw(textureLibrary.region(SampleTextureId.MESSAGE_PANEL), MARGIN, gridBottom, gridWidth, GRID_HEIGHT);
-        batch.setColor(Color.WHITE);
+    private void drawStage(ActivityScreenScaffold.ActivityFrame frame) {
+        scaffold.drawGridPanel(batch, textureLibrary, frame, Color.valueOf("F3E9FF"));
 
         for (FinaleCheckpointView checkpoint : finaleView.checkpoints()) {
-            float x = MARGIN + (checkpoint.x() * cellWidth) + (cellWidth * 0.12f);
-            float y = gridBottom + (checkpoint.y() * cellHeight) + (cellHeight * 0.12f);
-            float width = cellWidth * 0.76f;
-            float height = cellHeight * 0.76f;
+            ActivityScreenScaffold.GridCardBounds bounds = scaffold.cardBounds(frame, checkpoint.x(), checkpoint.y());
 
             TextureRegion region = resolveCheckpointTexture(checkpoint);
             batch.setColor(checkpoint.active() ? Color.WHITE : Color.valueOf(checkpoint.checked() ? "E9F7DB" : "D2C9DB"));
-            batch.draw(region, x, y, width, height);
+            batch.draw(region, bounds.x(), bounds.y(), bounds.width(), bounds.height());
             batch.setColor(Color.WHITE);
 
-            bodyFont.draw(batch, checkpoint.label(), x + 10f, y + height - 18f, width - 20f, Align.left, true);
+            bodyFont.draw(
+                batch,
+                checkpoint.label(),
+                bounds.x() + 10f,
+                bounds.y() + bounds.height() - 18f,
+                bounds.width() - 20f,
+                com.badlogic.gdx.utils.Align.left,
+                true
+            );
             String marker = checkpoint.checked()
                 ? "점검 완료"
                 : checkpoint.required() ? "핵심" : "보류";
-            bodyFont.draw(batch, marker, x + 10f, y + 22f);
+            bodyFont.draw(batch, marker, bounds.x() + 10f, bounds.y() + 22f);
         }
 
-        drawActor(MARGIN, gridBottom, cellWidth, cellHeight);
-        bodyFont.draw(batch, "facing: " + finaleView.facing(), MARGIN, stageTop + 28f);
+        scaffold.drawActor(batch, bodyFont, textureLibrary, frame, finaleView.actorX(), finaleView.actorY());
+        scaffold.drawFacing(batch, bodyFont, frame, finaleView.facing());
     }
 
     private TextureRegion resolveCheckpointTexture(FinaleCheckpointView checkpoint) {
@@ -146,41 +156,6 @@ public final class FinaleStageScreen extends ScreenAdapter {
         return textureLibrary.region(
             checkpoint.required() ? SampleTextureId.FINALE_STAGE : SampleTextureId.LOCKED_CARD
         );
-    }
-
-    private void drawActor(float gridLeft, float gridBottom, float cellWidth, float cellHeight) {
-        TextureRegion helper = textureLibrary.region(SampleTextureId.HELPER_ACTOR);
-        float actorWidth = cellWidth * 0.46f;
-        float actorHeight = cellHeight * 0.64f;
-        float actorX = gridLeft + (finaleView.actorX() * cellWidth) + ((cellWidth - actorWidth) / 2f);
-        float actorY = gridBottom + (finaleView.actorY() * cellHeight) + ((cellHeight - actorHeight) / 2f);
-        batch.draw(helper, actorX, actorY, actorWidth, actorHeight);
-        bodyFont.draw(batch, "조력자", actorX - 2f, actorY - 6f);
-    }
-
-    private void drawStatusPanel(float worldWidth) {
-        batch.setColor(Color.WHITE);
-        batch.draw(textureLibrary.region(SampleTextureId.MESSAGE_PANEL), MARGIN, MARGIN, worldWidth - (MARGIN * 2f), STATUS_HEIGHT);
-        bodyFont.draw(batch, "status", MARGIN + 24f, MARGIN + STATUS_HEIGHT - 24f);
-        bodyFont.draw(
-            batch,
-            finaleView.statusMessage(),
-            MARGIN + 24f,
-            MARGIN + 116f,
-            worldWidth - (MARGIN * 2f) - 48f,
-            Align.left,
-            true
-        );
-        bodyFont.draw(
-            batch,
-            "checks: " + finaleView.checkedRequiredCount() + " / " + finaleView.requiredCount(),
-            MARGIN + 24f,
-            MARGIN + 66f
-        );
-        String footer = finaleView.readyToReturn()
-            ? "enter로 마지막 개장 신호를 확정한다"
-            : "지점 앞에서 z로 최종 점검을 진행한다";
-        bodyFont.draw(batch, footer, MARGIN + 24f, MARGIN + 34f);
     }
 
     @Override

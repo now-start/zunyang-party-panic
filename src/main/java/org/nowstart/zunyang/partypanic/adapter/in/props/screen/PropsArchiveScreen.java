@@ -6,10 +6,9 @@ import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
+import org.nowstart.zunyang.partypanic.adapter.in.common.ui.ActivityScreenScaffold;
 import org.nowstart.zunyang.partypanic.adapter.in.common.ui.SampleFontId;
 import org.nowstart.zunyang.partypanic.adapter.in.common.ui.SampleFontLibrary;
 import org.nowstart.zunyang.partypanic.adapter.in.common.ui.SampleTextureId;
@@ -25,10 +24,6 @@ import org.nowstart.zunyang.partypanic.domain.common.Direction;
 
 public final class PropsArchiveScreen extends ScreenAdapter {
 
-    private static final float MARGIN = 48f;
-    private static final float GRID_HEIGHT = 420f;
-    private static final float STATUS_HEIGHT = 180f;
-
     private final StartPropsArchiveUseCase startPropsArchiveUseCase;
     private final MovePropsActorUseCase movePropsActorUseCase;
     private final InspectPropsItemUseCase inspectPropsItemUseCase;
@@ -40,6 +35,7 @@ public final class PropsArchiveScreen extends ScreenAdapter {
     private final BitmapFont titleFont = fontLibrary.font(SampleFontId.TITLE);
     private final BitmapFont bodyFont = fontLibrary.font(SampleFontId.COMPACT);
     private final SampleTextureLibrary textureLibrary = new SampleTextureLibrary();
+    private final ActivityScreenScaffold scaffold = new ActivityScreenScaffold();
 
     private PropsArchiveViewResult propsView;
 
@@ -70,17 +66,33 @@ public final class PropsArchiveScreen extends ScreenAdapter {
 
         float worldWidth = viewport.getWorldWidth();
         float worldHeight = viewport.getWorldHeight();
+        ActivityScreenScaffold.ActivityFrame frame =
+            scaffold.frame(worldWidth, worldHeight, propsView.width(), propsView.height());
 
         batch.begin();
-        batch.setColor(Color.WHITE);
-        batch.draw(textureLibrary.region(SampleTextureId.PROPS_CARD), 0f, 0f, worldWidth, worldHeight);
-
-        titleFont.draw(batch, propsView.title(), MARGIN, worldHeight - 36f);
-        bodyFont.draw(batch, propsView.instructions(), MARGIN, worldHeight - 76f);
-        bodyFont.draw(batch, "target: 필요한 상자 세 개만 골라 회수한다", MARGIN, worldHeight - 108f);
-
-        drawRoom(worldWidth, worldHeight);
-        drawStatusPanel(worldWidth);
+        scaffold.drawHeader(
+            batch,
+            titleFont,
+            bodyFont,
+            textureLibrary,
+            frame,
+            SampleTextureId.PROPS_CARD,
+            propsView.title(),
+            propsView.instructions(),
+            "target: 필요한 상자 세 개만 골라 회수한다"
+        );
+        drawRoom(frame);
+        scaffold.drawStatusPanel(
+            batch,
+            bodyFont,
+            textureLibrary,
+            frame,
+            propsView.statusMessage(),
+            "inventory: " + propsView.collectedRequiredCount() + " / " + propsView.requiredCount(),
+            propsView.readyToReturn()
+                ? "enter로 회수 결과를 확정한다"
+                : "상자 앞에서 z로 조사해 필요한 소품만 챙긴다"
+        );
         batch.end();
     }
 
@@ -105,72 +117,27 @@ public final class PropsArchiveScreen extends ScreenAdapter {
         }
     }
 
-    private void drawRoom(float worldWidth, float worldHeight) {
-        float gridBottom = MARGIN + STATUS_HEIGHT + 24f;
-        float gridWidth = worldWidth - (MARGIN * 2f);
-        float cellWidth = gridWidth / propsView.width();
-        float cellHeight = GRID_HEIGHT / propsView.height();
-        float roomTop = gridBottom + GRID_HEIGHT;
-
-        batch.setColor(Color.valueOf("F0E5FA"));
-        batch.draw(textureLibrary.region(SampleTextureId.MESSAGE_PANEL), MARGIN, gridBottom, gridWidth, GRID_HEIGHT);
-        batch.setColor(Color.WHITE);
+    private void drawRoom(ActivityScreenScaffold.ActivityFrame frame) {
+        scaffold.drawGridPanel(batch, textureLibrary, frame, Color.valueOf("F0E5FA"));
 
         for (PropsItemView item : propsView.items()) {
-            float x = MARGIN + (item.x() * cellWidth) + (cellWidth * 0.12f);
-            float y = gridBottom + (item.y() * cellHeight) + (cellHeight * 0.12f);
-            float width = cellWidth * 0.76f;
-            float height = cellHeight * 0.76f;
+            ActivityScreenScaffold.GridCardBounds bounds = scaffold.cardBounds(frame, item.x(), item.y());
 
-            TextureRegion region = textureLibrary.region(item.required() ? SampleTextureId.PROPS_CARD : SampleTextureId.LOCKED_CARD);
+            com.badlogic.gdx.graphics.g2d.TextureRegion region =
+                textureLibrary.region(item.required() ? SampleTextureId.PROPS_CARD : SampleTextureId.LOCKED_CARD);
             batch.setColor(item.active() ? Color.WHITE : Color.valueOf(item.collected() ? "D9F7BE" : "B8B0C8"));
-            batch.draw(region, x, y, width, height);
+            batch.draw(region, bounds.x(), bounds.y(), bounds.width(), bounds.height());
             batch.setColor(Color.WHITE);
 
-            bodyFont.draw(batch, item.label(), x + 10f, y + height - 18f);
+            bodyFont.draw(batch, item.label(), bounds.x() + 10f, bounds.y() + bounds.height() - 18f);
             String marker = item.collected()
                 ? "회수 완료"
                 : item.required() ? "필수" : "보류";
-            bodyFont.draw(batch, marker, x + 10f, y + 26f);
+            bodyFont.draw(batch, marker, bounds.x() + 10f, bounds.y() + 26f);
         }
 
-        drawActor(MARGIN, gridBottom, cellWidth, cellHeight);
-        bodyFont.draw(batch, "facing: " + propsView.facing(), MARGIN, roomTop + 28f);
-    }
-
-    private void drawActor(float gridLeft, float gridBottom, float cellWidth, float cellHeight) {
-        TextureRegion helper = textureLibrary.region(SampleTextureId.HELPER_ACTOR);
-        float actorWidth = cellWidth * 0.46f;
-        float actorHeight = cellHeight * 0.64f;
-        float actorX = gridLeft + (propsView.actorX() * cellWidth) + ((cellWidth - actorWidth) / 2f);
-        float actorY = gridBottom + (propsView.actorY() * cellHeight) + ((cellHeight - actorHeight) / 2f);
-        batch.draw(helper, actorX, actorY, actorWidth, actorHeight);
-        bodyFont.draw(batch, "조력자", actorX - 2f, actorY - 6f);
-    }
-
-    private void drawStatusPanel(float worldWidth) {
-        batch.setColor(Color.WHITE);
-        batch.draw(textureLibrary.region(SampleTextureId.MESSAGE_PANEL), MARGIN, MARGIN, worldWidth - (MARGIN * 2f), STATUS_HEIGHT);
-        bodyFont.draw(batch, "status", MARGIN + 24f, MARGIN + STATUS_HEIGHT - 24f);
-        bodyFont.draw(
-            batch,
-            propsView.statusMessage(),
-            MARGIN + 24f,
-            MARGIN + 116f,
-            worldWidth - (MARGIN * 2f) - 48f,
-            Align.left,
-            true
-        );
-        bodyFont.draw(
-            batch,
-            "inventory: " + propsView.collectedRequiredCount() + " / " + propsView.requiredCount(),
-            MARGIN + 24f,
-            MARGIN + 66f
-        );
-        String footer = propsView.readyToReturn()
-            ? "enter로 회수 결과를 확정한다"
-            : "상자 앞에서 z로 조사해 필요한 소품만 챙긴다";
-        bodyFont.draw(batch, footer, MARGIN + 24f, MARGIN + 34f);
+        scaffold.drawActor(batch, bodyFont, textureLibrary, frame, propsView.actorX(), propsView.actorY());
+        scaffold.drawFacing(batch, bodyFont, frame, propsView.facing());
     }
 
     @Override

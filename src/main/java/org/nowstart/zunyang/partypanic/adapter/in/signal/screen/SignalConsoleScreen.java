@@ -6,10 +6,9 @@ import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
+import org.nowstart.zunyang.partypanic.adapter.in.common.ui.ActivityScreenScaffold;
 import org.nowstart.zunyang.partypanic.adapter.in.common.ui.SampleFontId;
 import org.nowstart.zunyang.partypanic.adapter.in.common.ui.SampleFontLibrary;
 import org.nowstart.zunyang.partypanic.adapter.in.common.ui.SampleTextureId;
@@ -27,10 +26,6 @@ import org.nowstart.zunyang.partypanic.domain.common.Direction;
 
 public final class SignalConsoleScreen extends ScreenAdapter {
 
-    private static final float MARGIN = 48f;
-    private static final float GRID_HEIGHT = 420f;
-    private static final float STATUS_HEIGHT = 180f;
-
     private final StartSignalConsoleUseCase startSignalConsoleUseCase;
     private final MoveSignalActorUseCase moveSignalActorUseCase;
     private final InspectSignalControlUseCase inspectSignalControlUseCase;
@@ -43,6 +38,7 @@ public final class SignalConsoleScreen extends ScreenAdapter {
     private final BitmapFont titleFont = fontLibrary.font(SampleFontId.TITLE);
     private final BitmapFont bodyFont = fontLibrary.font(SampleFontId.COMPACT);
     private final SampleTextureLibrary textureLibrary = new SampleTextureLibrary();
+    private final ActivityScreenScaffold scaffold = new ActivityScreenScaffold();
 
     private SignalConsoleViewResult signalView;
 
@@ -75,17 +71,33 @@ public final class SignalConsoleScreen extends ScreenAdapter {
 
         float worldWidth = viewport.getWorldWidth();
         float worldHeight = viewport.getWorldHeight();
+        ActivityScreenScaffold.ActivityFrame frame =
+            scaffold.frame(worldWidth, worldHeight, signalView.width(), signalView.height());
 
         batch.begin();
-        batch.setColor(Color.WHITE);
-        batch.draw(textureLibrary.region(SampleTextureId.SIGNAL_CARD), 0f, 0f, worldWidth, worldHeight);
-
-        titleFont.draw(batch, signalView.title(), MARGIN, worldHeight - 36f);
-        bodyFont.draw(batch, signalView.instructions(), MARGIN, worldHeight - 76f);
-        bodyFont.draw(batch, "target: 룸을 돌며 장비 네 개를 모두 안정값으로 맞춘다", MARGIN, worldHeight - 108f);
-
-        drawRoom(worldWidth, worldHeight);
-        drawStatusPanel(worldWidth);
+        scaffold.drawHeader(
+            batch,
+            titleFont,
+            bodyFont,
+            textureLibrary,
+            frame,
+            SampleTextureId.SIGNAL_CARD,
+            signalView.title(),
+            signalView.instructions(),
+            "target: 룸을 돌며 장비 네 개를 모두 안정값으로 맞춘다"
+        );
+        drawRoom(frame);
+        scaffold.drawStatusPanel(
+            batch,
+            bodyFont,
+            textureLibrary,
+            frame,
+            signalView.statusMessage(),
+            "active: " + valueOrDash(signalView.activeControlId()),
+            signalView.stabilized()
+                ? "enter로 첫 신호를 확정한다"
+                : "장비 앞에서 z로 조사하고 x/c로 값을 내리거나 올린다"
+        );
         batch.end();
     }
 
@@ -112,34 +124,29 @@ public final class SignalConsoleScreen extends ScreenAdapter {
         }
     }
 
-    private void drawRoom(float worldWidth, float worldHeight) {
-        float gridBottom = MARGIN + STATUS_HEIGHT + 24f;
-        float gridWidth = worldWidth - (MARGIN * 2f);
-        float cellWidth = gridWidth / signalView.width();
-        float cellHeight = GRID_HEIGHT / signalView.height();
-        float roomTop = gridBottom + GRID_HEIGHT;
-
-        batch.setColor(Color.valueOf("E6E9EE"));
-        batch.draw(textureLibrary.region(SampleTextureId.MESSAGE_PANEL), MARGIN, gridBottom, gridWidth, GRID_HEIGHT);
-        batch.setColor(Color.WHITE);
+    private void drawRoom(ActivityScreenScaffold.ActivityFrame frame) {
+        scaffold.drawGridPanel(batch, textureLibrary, frame, Color.valueOf("E6E9EE"));
 
         for (SignalControlView control : signalView.controls()) {
-            float x = MARGIN + (control.x() * cellWidth) + (cellWidth * 0.12f);
-            float y = gridBottom + (control.y() * cellHeight) + (cellHeight * 0.12f);
-            float width = cellWidth * 0.76f;
-            float height = cellHeight * 0.76f;
+            ActivityScreenScaffold.GridCardBounds bounds = scaffold.cardBounds(frame, control.x(), control.y());
 
             batch.setColor(control.active() ? Color.WHITE : Color.valueOf("A7AFBC"));
-            batch.draw(textureLibrary.region(SampleTextureId.MESSAGE_PANEL), x, y, width, height);
+            batch.draw(
+                textureLibrary.region(SampleTextureId.MESSAGE_PANEL),
+                bounds.x(),
+                bounds.y(),
+                bounds.width(),
+                bounds.height()
+            );
             batch.setColor(Color.WHITE);
 
-            bodyFont.draw(batch, control.label(), x + 10f, y + height - 18f);
-            bodyFont.draw(batch, control.currentDescriptor(), x + 10f, y + height - 50f);
-            drawLevelBar(control, x + 10f, y + 22f, width - 20f);
+            bodyFont.draw(batch, control.label(), bounds.x() + 10f, bounds.y() + bounds.height() - 18f);
+            bodyFont.draw(batch, control.currentDescriptor(), bounds.x() + 10f, bounds.y() + bounds.height() - 50f);
+            drawLevelBar(control, bounds.x() + 10f, bounds.y() + 22f, bounds.width() - 20f);
         }
 
-        drawActor(MARGIN, gridBottom, cellWidth, cellHeight);
-        bodyFont.draw(batch, "facing: " + signalView.facing(), MARGIN, roomTop + 28f);
+        scaffold.drawActor(batch, bodyFont, textureLibrary, frame, signalView.actorX(), signalView.actorY());
+        scaffold.drawFacing(batch, bodyFont, frame, signalView.facing());
     }
 
     private void drawLevelBar(SignalControlView control, float x, float y, float width) {
@@ -156,36 +163,6 @@ public final class SignalConsoleScreen extends ScreenAdapter {
             );
         }
         batch.setColor(Color.WHITE);
-    }
-
-    private void drawActor(float gridLeft, float gridBottom, float cellWidth, float cellHeight) {
-        TextureRegion helper = textureLibrary.region(SampleTextureId.HELPER_ACTOR);
-        float actorWidth = cellWidth * 0.46f;
-        float actorHeight = cellHeight * 0.64f;
-        float actorX = gridLeft + (signalView.actorX() * cellWidth) + ((cellWidth - actorWidth) / 2f);
-        float actorY = gridBottom + (signalView.actorY() * cellHeight) + ((cellHeight - actorHeight) / 2f);
-        batch.draw(helper, actorX, actorY, actorWidth, actorHeight);
-        bodyFont.draw(batch, "조력자", actorX - 2f, actorY - 6f);
-    }
-
-    private void drawStatusPanel(float worldWidth) {
-        batch.setColor(Color.WHITE);
-        batch.draw(textureLibrary.region(SampleTextureId.MESSAGE_PANEL), MARGIN, MARGIN, worldWidth - (MARGIN * 2f), STATUS_HEIGHT);
-        bodyFont.draw(batch, "status", MARGIN + 24f, MARGIN + STATUS_HEIGHT - 24f);
-        bodyFont.draw(
-            batch,
-            signalView.statusMessage(),
-            MARGIN + 24f,
-            MARGIN + 116f,
-            worldWidth - (MARGIN * 2f) - 48f,
-            Align.left,
-            true
-        );
-        bodyFont.draw(batch, "active: " + valueOrDash(signalView.activeControlId()), MARGIN + 24f, MARGIN + 66f);
-        String footer = signalView.stabilized()
-            ? "enter로 첫 신호를 확정한다"
-            : "장비 앞에서 z로 조사하고 x/c로 값을 내리거나 올린다";
-        bodyFont.draw(batch, footer, MARGIN + 24f, MARGIN + 34f);
     }
 
     private String valueOrDash(String value) {

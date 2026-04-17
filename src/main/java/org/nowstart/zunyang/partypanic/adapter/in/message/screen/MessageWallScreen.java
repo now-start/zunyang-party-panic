@@ -6,10 +6,10 @@ import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
+import org.nowstart.zunyang.partypanic.adapter.in.common.ui.ActivityScreenScaffold;
 import org.nowstart.zunyang.partypanic.adapter.in.common.ui.SampleFontId;
 import org.nowstart.zunyang.partypanic.adapter.in.common.ui.SampleFontLibrary;
 import org.nowstart.zunyang.partypanic.adapter.in.common.ui.SampleTextureId;
@@ -25,10 +25,6 @@ import org.nowstart.zunyang.partypanic.domain.common.Direction;
 
 public final class MessageWallScreen extends ScreenAdapter {
 
-    private static final float MARGIN = 48f;
-    private static final float GRID_HEIGHT = 420f;
-    private static final float STATUS_HEIGHT = 180f;
-
     private final StartMessageWallUseCase startMessageWallUseCase;
     private final MoveMessageActorUseCase moveMessageActorUseCase;
     private final InspectMessageNoteUseCase inspectMessageNoteUseCase;
@@ -40,6 +36,7 @@ public final class MessageWallScreen extends ScreenAdapter {
     private final BitmapFont titleFont = fontLibrary.font(SampleFontId.TITLE);
     private final BitmapFont bodyFont = fontLibrary.font(SampleFontId.COMPACT);
     private final SampleTextureLibrary textureLibrary = new SampleTextureLibrary();
+    private final ActivityScreenScaffold scaffold = new ActivityScreenScaffold();
 
     private MessageWallViewResult messageView;
 
@@ -71,17 +68,33 @@ public final class MessageWallScreen extends ScreenAdapter {
 
         float worldWidth = viewport.getWorldWidth();
         float worldHeight = viewport.getWorldHeight();
+        ActivityScreenScaffold.ActivityFrame frame =
+            scaffold.frame(worldWidth, worldHeight, messageView.width(), messageView.height());
 
         batch.begin();
-        batch.setColor(Color.WHITE);
-        batch.draw(textureLibrary.region(SampleTextureId.MESSAGE_CARD), 0f, 0f, worldWidth, worldHeight);
-
-        titleFont.draw(batch, messageView.title(), MARGIN, worldHeight - 36f);
-        bodyFont.draw(batch, messageView.instructions(), MARGIN, worldHeight - 76f);
-        bodyFont.draw(batch, "target: 오늘 곁에 둘 핵심 문장 두 개를 정리해 마지막 점검으로 넘긴다", MARGIN, worldHeight - 108f);
-
-        drawWall(worldWidth, worldHeight);
-        drawStatusPanel(worldWidth);
+        scaffold.drawHeader(
+            batch,
+            titleFont,
+            bodyFont,
+            textureLibrary,
+            frame,
+            SampleTextureId.MESSAGE_CARD,
+            messageView.title(),
+            messageView.instructions(),
+            "target: 오늘 곁에 둘 핵심 문장 두 개를 정리해 마지막 점검으로 넘긴다"
+        );
+        drawWall(frame);
+        scaffold.drawStatusPanel(
+            batch,
+            bodyFont,
+            textureLibrary,
+            frame,
+            messageView.statusMessage(),
+            "selected: " + messageView.selectedRequiredCount() + " / " + messageView.requiredCount(),
+            messageView.readyToReturn()
+                ? "enter로 오늘 벽에 남길 문장을 확정한다"
+                : "문장 앞에서 z로 확인해 오늘 곁에 둘 말을 고른다"
+        );
         batch.end();
     }
 
@@ -106,75 +119,37 @@ public final class MessageWallScreen extends ScreenAdapter {
         }
     }
 
-    private void drawWall(float worldWidth, float worldHeight) {
-        float gridBottom = MARGIN + STATUS_HEIGHT + 24f;
-        float gridWidth = worldWidth - (MARGIN * 2f);
-        float cellWidth = gridWidth / messageView.width();
-        float cellHeight = GRID_HEIGHT / messageView.height();
-        float wallTop = gridBottom + GRID_HEIGHT;
-
-        batch.setColor(Color.valueOf("F5EDF6"));
-        batch.draw(textureLibrary.region(SampleTextureId.MESSAGE_PANEL), MARGIN, gridBottom, gridWidth, GRID_HEIGHT);
-        batch.setColor(Color.WHITE);
+    private void drawWall(ActivityScreenScaffold.ActivityFrame frame) {
+        scaffold.drawGridPanel(batch, textureLibrary, frame, Color.valueOf("F5EDF6"));
 
         for (MessageNoteView note : messageView.notes()) {
-            float x = MARGIN + (note.x() * cellWidth) + (cellWidth * 0.12f);
-            float y = gridBottom + (note.y() * cellHeight) + (cellHeight * 0.12f);
-            float width = cellWidth * 0.76f;
-            float height = cellHeight * 0.76f;
+            ActivityScreenScaffold.GridCardBounds bounds = scaffold.cardBounds(frame, note.x(), note.y());
 
-            TextureRegion region = textureLibrary.region(
+            com.badlogic.gdx.graphics.g2d.TextureRegion region = textureLibrary.region(
                 note.required() ? SampleTextureId.MESSAGE_CARD : SampleTextureId.LOCKED_CARD
             );
             batch.setColor(note.active() ? Color.WHITE : Color.valueOf(note.selected() ? "F2F7D9" : "D7CFD8"));
-            batch.draw(region, x, y, width, height);
+            batch.draw(region, bounds.x(), bounds.y(), bounds.width(), bounds.height());
             batch.setColor(Color.WHITE);
 
-            bodyFont.draw(batch, note.label(), x + 8f, y + height - 14f);
-            bodyFont.draw(batch, note.excerpt(), x + 8f, y + height - 32f, width - 16f, Align.left, true);
+            bodyFont.draw(batch, note.label(), bounds.x() + 8f, bounds.y() + bounds.height() - 14f);
+            bodyFont.draw(
+                batch,
+                note.excerpt(),
+                bounds.x() + 8f,
+                bounds.y() + bounds.height() - 32f,
+                bounds.width() - 16f,
+                Align.left,
+                true
+            );
             String marker = note.selected()
                 ? "선택됨"
                 : note.required() ? "핵심" : "보류";
-            bodyFont.draw(batch, marker, x + 8f, y + 14f);
+            bodyFont.draw(batch, marker, bounds.x() + 8f, bounds.y() + 14f);
         }
 
-        drawActor(MARGIN, gridBottom, cellWidth, cellHeight);
-        bodyFont.draw(batch, "facing: " + messageView.facing(), MARGIN, wallTop + 28f);
-    }
-
-    private void drawActor(float gridLeft, float gridBottom, float cellWidth, float cellHeight) {
-        TextureRegion helper = textureLibrary.region(SampleTextureId.HELPER_ACTOR);
-        float actorWidth = cellWidth * 0.46f;
-        float actorHeight = cellHeight * 0.64f;
-        float actorX = gridLeft + (messageView.actorX() * cellWidth) + ((cellWidth - actorWidth) / 2f);
-        float actorY = gridBottom + (messageView.actorY() * cellHeight) + ((cellHeight - actorHeight) / 2f);
-        batch.draw(helper, actorX, actorY, actorWidth, actorHeight);
-        bodyFont.draw(batch, "조력자", actorX - 2f, actorY - 6f);
-    }
-
-    private void drawStatusPanel(float worldWidth) {
-        batch.setColor(Color.WHITE);
-        batch.draw(textureLibrary.region(SampleTextureId.MESSAGE_PANEL), MARGIN, MARGIN, worldWidth - (MARGIN * 2f), STATUS_HEIGHT);
-        bodyFont.draw(batch, "status", MARGIN + 24f, MARGIN + STATUS_HEIGHT - 24f);
-        bodyFont.draw(
-            batch,
-            messageView.statusMessage(),
-            MARGIN + 24f,
-            MARGIN + 116f,
-            worldWidth - (MARGIN * 2f) - 48f,
-            Align.left,
-            true
-        );
-        bodyFont.draw(
-            batch,
-            "selected: " + messageView.selectedRequiredCount() + " / " + messageView.requiredCount(),
-            MARGIN + 24f,
-            MARGIN + 66f
-        );
-        String footer = messageView.readyToReturn()
-            ? "enter로 오늘 벽에 남길 문장을 확정한다"
-            : "문장 앞에서 z로 확인해 오늘 곁에 둘 말을 고른다";
-        bodyFont.draw(batch, footer, MARGIN + 24f, MARGIN + 34f);
+        scaffold.drawActor(batch, bodyFont, textureLibrary, frame, messageView.actorX(), messageView.actorY());
+        scaffold.drawFacing(batch, bodyFont, frame, messageView.facing());
     }
 
     @Override
