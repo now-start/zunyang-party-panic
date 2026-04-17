@@ -1,0 +1,21 @@
+{
+  "chapterId": "PHOTO",
+  "title": "남을 장면을 고정하다",
+  "subtitle": "포토 베이",
+  "visualToken": "photo",
+  "activityType": "PHOTO_BAY",
+  "pages": [
+    {
+      "speaker": "조력자",
+      "text": "남을 장면은 대충 잡으면 오래 아쉽다."
+    },
+    {
+      "speaker": "조력자",
+      "text": "의자를 반 걸음 뒤로. 빛은 한 톤만 더 부드럽게."
+    },
+    {
+      "speaker": "조력자",
+      "text": "좋아. 오늘을 남길 프레임 하나는 제대로 잡혔다."
+    }
+  ]
+}

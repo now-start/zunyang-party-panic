@@ -1,0 +1,21 @@
+{
+  "chapterId": "PROPS",
+  "title": "빈 자리를 채울 것들",
+  "subtitle": "소품 아카이브",
+  "visualToken": "props",
+  "activityType": "PROPS_ARCHIVE",
+  "pages": [
+    {
+      "speaker": "조력자",
+      "text": "전부 꺼낼 필요는 없다. 오늘 필요한 것만 정확히 집는다."
+    },
+    {
+      "speaker": "조력자",
+      "text": "리본, 토퍼, 보조 조명. 빈 자리를 메우는 데 필요한 건 이 정도면 된다."
+    },
+    {
+      "speaker": "조력자",
+      "text": "좋아. 허브의 허전한 구석이 이제 덜 드러나겠다."
+    }
+  ]
+}

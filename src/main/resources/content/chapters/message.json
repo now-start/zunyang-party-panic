@@ -1,0 +1,21 @@
+{
+  "chapterId": "MESSAGE",
+  "title": "전해질 말을 고르다",
+  "subtitle": "메시지 월",
+  "visualToken": "message",
+  "activityType": "MESSAGE_WALL",
+  "pages": [
+    {
+      "speaker": "조력자",
+      "text": "이건 읽고 끝내는 게 아니다. 오늘 곁에 둘 말을 정하는 일이다."
+    },
+    {
+      "speaker": "조력자",
+      "text": "짧은 문장이 더 오래 남는다. 지금 필요한 건 그런 쪽이다."
+    },
+    {
+      "speaker": "조력자",
+      "text": "좋아. 무대 옆이 이제 조금 덜 비어 보이겠다."
+    }
+  ]
+}

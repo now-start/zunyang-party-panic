@@ -1,0 +1,21 @@
+{
+  "chapterId": "FINALE",
+  "title": "불이 켜지기 직전",
+  "subtitle": "메인 스테이지",
+  "visualToken": "finale",
+  "activityType": "FINALE_STAGE",
+  "pages": [
+    {
+      "speaker": "조력자",
+      "text": "빛도, 소품도, 남길 말도 다 들어갔다."
+    },
+    {
+      "speaker": "스트리머",
+      "text": "이제 들어가면 되지?"
+    },
+    {
+      "speaker": "조력자",
+      "text": "응. 이제 바로 켜면 된다."
+    }
+  ]
+}

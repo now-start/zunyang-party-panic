@@ -36,6 +36,12 @@ class CleanArchitectureTest {
             );
 
     @ArchTest
+    static final ArchRule application_should_not_depend_on_frameworks =
+        noClasses().that().resideInAPackage("..application..")
+            .should().dependOnClassesThat()
+            .resideInAPackage("com.badlogic.gdx..");
+
+    @ArchTest
     static final ArchRule adapter_in_should_not_depend_on_adapter_out =
         noClasses().that().resideInAPackage("..adapter.in..")
             .should().dependOnClassesThat()

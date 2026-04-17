@@ -1,0 +1,21 @@
+{
+  "chapterId": "SIGNAL",
+  "title": "첫 신호를 맞추다",
+  "subtitle": "큐 부스 정비",
+  "visualToken": "signal",
+  "activityType": "SIGNAL_CONSOLE",
+  "pages": [
+    {
+      "speaker": "조력자",
+      "text": "마이크와 모니터부터 안정시켜야 한다. 첫 신호는 여기서 시작된다."
+    },
+    {
+      "speaker": "스트리머",
+      "text": "첫 숨만 괜찮으면 바로 들어갈 수 있어."
+    },
+    {
+      "speaker": "조력자",
+      "text": "좋아. 첫 신호는 흔들리지 않겠다."
+    }
+  ]
+}

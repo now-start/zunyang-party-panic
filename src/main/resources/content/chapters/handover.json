@@ -1,0 +1,21 @@
+{
+  "chapterId": "HANDOVER",
+  "title": "지난 밤들의 인수인계",
+  "subtitle": "기록 복도",
+  "visualToken": "handover",
+  "activityType": "HANDOVER_CORRIDOR",
+  "pages": [
+    {
+      "speaker": "조력자",
+      "text": "낡은 큐시트 하나에도 누가 무엇을 먼저 챙겼는지가 남아 있다."
+    },
+    {
+      "speaker": "조력자",
+      "text": "완전한 기록은 아니어도, 오늘 밤을 이어 주기엔 충분하다."
+    },
+    {
+      "speaker": "조력자",
+      "text": "이 밤도 그냥 갑자기 생긴 무대는 아니었다."
+    }
+  ]
+}

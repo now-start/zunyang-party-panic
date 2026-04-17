@@ -1,0 +1,21 @@
+{
+  "chapterId": "CENTERPIECE",
+  "title": "오늘의 중심을 세우다",
+  "subtitle": "중앙 테이블",
+  "visualToken": "centerpiece",
+  "activityType": "CENTERPIECE_TABLE",
+  "pages": [
+    {
+      "speaker": "조력자",
+      "text": "가운데 장면이 서야 준비동 전체가 오늘처럼 보인다."
+    },
+    {
+      "speaker": "조력자",
+      "text": "초 위치를 정리하고 리본 선을 한 번만 더 맞추자."
+    },
+    {
+      "speaker": "조력자",
+      "text": "이제야 화면 가운데가 비어 보이지 않는다."
+    }
+  ]
+}
