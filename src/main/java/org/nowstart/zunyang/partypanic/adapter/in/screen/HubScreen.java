@@ -1,0 +1,327 @@
+package org.nowstart.zunyang.partypanic.adapter.in.screen;
+
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
+import com.badlogic.gdx.ScreenAdapter;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
+import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.utils.ScreenUtils;
+import org.nowstart.zunyang.partypanic.application.dto.AdvanceDialogueResult;
+import org.nowstart.zunyang.partypanic.application.dto.InteractResult;
+import org.nowstart.zunyang.partypanic.application.dto.MovePlayerCommand;
+import org.nowstart.zunyang.partypanic.application.dto.MovePlayerResult;
+import org.nowstart.zunyang.partypanic.application.port.in.AdvanceDialogueUseCase;
+import org.nowstart.zunyang.partypanic.application.port.in.InteractUseCase;
+import org.nowstart.zunyang.partypanic.application.port.in.MovePlayerUseCase;
+import org.nowstart.zunyang.partypanic.application.port.out.GameNavigator;
+import org.nowstart.zunyang.partypanic.config.GameModule.HubContext;
+import org.nowstart.zunyang.partypanic.domain.event.GameEvent;
+import org.nowstart.zunyang.partypanic.domain.model.Dialogue;
+import org.nowstart.zunyang.partypanic.domain.model.Direction;
+import org.nowstart.zunyang.partypanic.domain.model.GameState;
+import org.nowstart.zunyang.partypanic.domain.progress.GameProgress;
+import org.nowstart.zunyang.partypanic.adapter.in.renderer.DialogueWindowRenderer;
+import org.nowstart.zunyang.partypanic.adapter.in.renderer.HubMapRenderer;
+import org.nowstart.zunyang.partypanic.adapter.in.renderer.PixelUiRenderer;
+import org.nowstart.zunyang.partypanic.adapter.in.support.ScreenSupport;
+
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+
+public final class HubScreen extends ScreenAdapter {
+    private static final float MOVE_REPEAT_SECONDS = 0.12f;
+    private static final float PLAYER_LERP_SPEED = 14f;
+    private static final float DIALOGUE_LERP_SPEED = 10f;
+    private static final Color DIALOGUE_TEXT_COLOR = new Color(0.96f, 0.92f, 0.87f, 1f);
+    private static final Color DIALOGUE_META_COLOR = new Color(0.80f, 0.75f, 0.72f, 1f);
+
+    private final GameNavigator navigator;
+    private final GameProgress progress;
+    private final MovePlayerUseCase movePlayerUseCase;
+    private final InteractUseCase interactUseCase;
+    private final AdvanceDialogueUseCase advanceDialogueUseCase;
+    private final SpriteBatch batch = new SpriteBatch();
+    private final BitmapFont bodyFont;
+    private final BitmapFont titleFont;
+    private final Texture pixelTexture;
+    private final Texture portraitTexture;
+    private final PixelUiRenderer ui;
+    private final HubMapRenderer mapRenderer;
+    private final DialogueWindowRenderer dialogueWindow;
+    private final String initialNotice;
+    private final float mapX;
+
+    private GameState currentState;
+    private float moveCooldown;
+    private float playerDrawX;
+    private float playerDrawY;
+    private float dialogueWindowProgress;
+    private float sceneTime;
+    private TransientDialogueState transientDialogueState;
+
+    public HubScreen(GameNavigator navigator, GameProgress progress, String notice, HubContext hubContext) {
+        this.navigator = navigator;
+        this.progress = progress;
+        this.initialNotice = notice;
+        this.currentState = hubContext.initialState();
+        this.movePlayerUseCase = hubContext.movePlayerUseCase();
+        this.interactUseCase = hubContext.interactUseCase();
+        this.advanceDialogueUseCase = hubContext.advanceDialogueUseCase();
+        this.mapX = (HubMapRenderer.WINDOW_WIDTH - mapWidth()) * 0.5f;
+        this.bodyFont = ScreenSupport.createBodyFont(buildFontCharacters());
+        this.titleFont = ScreenSupport.createTitleFont(buildFontCharacters());
+        this.pixelTexture = ScreenSupport.createPixelTexture();
+        this.portraitTexture = ScreenSupport.loadTexture("assets/images/characters/zunyang-birthday-host.png");
+        this.ui = new PixelUiRenderer(batch, bodyFont, titleFont, pixelTexture);
+        this.mapRenderer = new HubMapRenderer(ui, progress, hubContext.eventResolver());
+        this.dialogueWindow = new DialogueWindowRenderer(ui);
+        this.playerDrawX = tileToScreenX(currentState.player().position().x());
+        this.playerDrawY = tileToScreenY(currentState.player().position().y());
+
+        List<String> introPages = resolveInitialNoticePages();
+        if (!introPages.isEmpty()) {
+            transientDialogueState = new TransientDialogueState("치즈냥", introPages);
+        }
+    }
+
+    @Override
+    public void render(float delta) {
+        sceneTime += delta;
+        if (!handleInput(delta)) {
+            return;
+        }
+        updateAnimations(delta);
+
+        ScreenUtils.clear(0.10f, 0.08f, 0.10f, 1f);
+
+        batch.begin();
+        mapRenderer.draw(currentState, mapX, playerDrawX, playerDrawY, navigator.showsOperationalUi());
+        drawDialogueWindow();
+        batch.end();
+    }
+
+    private boolean handleInput(float delta) {
+        if (transientDialogueState != null) {
+            if (isConfirmPressed()) {
+                transientDialogueState = transientDialogueState.advance();
+            }
+            return true;
+        }
+
+        if (currentState.activeDialogue() != null) {
+            if (isConfirmPressed()) {
+                AdvanceDialogueResult result = advanceDialogueUseCase.advance();
+                currentState = result.state();
+                if (result.completedActivityId() != null) {
+                    navigator.openActivity(result.completedActivityId());
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        moveCooldown = Math.max(0f, moveCooldown - delta);
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+            navigator.showTitle();
+            return false;
+        }
+
+        if (isConfirmPressed()) {
+            InteractResult result = interactUseCase.interact();
+            currentState = result.state();
+            return true;
+        }
+
+        Direction direction = readPressedDirection();
+        if (direction == null) {
+            return true;
+        }
+
+        if (moveCooldown > 0f) {
+            MovePlayerResult result = movePlayerUseCase.move(new MovePlayerCommand(direction, false));
+            currentState = result.state();
+            return true;
+        }
+
+        MovePlayerResult result = movePlayerUseCase.move(new MovePlayerCommand(direction));
+        currentState = result.state();
+        moveCooldown = MOVE_REPEAT_SECONDS;
+        return true;
+    }
+
+    private void updateAnimations(float delta) {
+        float moveAlpha = Math.min(1f, delta * PLAYER_LERP_SPEED);
+        playerDrawX = MathUtils.lerp(playerDrawX, tileToScreenX(currentState.player().position().x()), moveAlpha);
+        playerDrawY = MathUtils.lerp(playerDrawY, tileToScreenY(currentState.player().position().y()), moveAlpha);
+
+        float dialogueTarget = hasVisibleDialogue() ? 1f : 0f;
+        float dialogueAlpha = Math.min(1f, delta * DIALOGUE_LERP_SPEED);
+        dialogueWindowProgress = MathUtils.lerp(dialogueWindowProgress, dialogueTarget, dialogueAlpha);
+    }
+
+    private boolean isConfirmPressed() {
+        return Gdx.input.isKeyJustPressed(Input.Keys.ENTER)
+                || Gdx.input.isKeyJustPressed(Input.Keys.SPACE)
+                || Gdx.input.isKeyJustPressed(Input.Keys.E);
+    }
+
+    private Direction readPressedDirection() {
+        if (Gdx.input.isKeyPressed(Input.Keys.LEFT) || Gdx.input.isKeyPressed(Input.Keys.A)) {
+            return Direction.LEFT;
+        }
+        if (Gdx.input.isKeyPressed(Input.Keys.RIGHT) || Gdx.input.isKeyPressed(Input.Keys.D)) {
+            return Direction.RIGHT;
+        }
+        if (Gdx.input.isKeyPressed(Input.Keys.UP) || Gdx.input.isKeyPressed(Input.Keys.W)) {
+            return Direction.UP;
+        }
+        if (Gdx.input.isKeyPressed(Input.Keys.DOWN) || Gdx.input.isKeyPressed(Input.Keys.S)) {
+            return Direction.DOWN;
+        }
+        return null;
+    }
+
+    private void drawDialogueWindow() {
+        if (!hasVisibleDialogue()) {
+            return;
+        }
+
+        Dialogue visibleDialogue = currentDialogue();
+        dialogueWindow.draw(
+                portraitTexture,
+                sceneTime,
+                dialogueWindowProgress,
+                visibleDialogue.currentLine().speaker(),
+                visibleDialogue.currentLine().text(),
+                DIALOGUE_TEXT_COLOR,
+                navigator.showsOperationalUi()
+                        ? (visibleDialogue.currentIndex() + 1) + " / " + visibleDialogue.lineCount()
+                        : null,
+                DIALOGUE_META_COLOR
+        );
+    }
+
+    private boolean hasVisibleDialogue() {
+        return transientDialogueState != null || currentState.activeDialogue() != null;
+    }
+
+    private Dialogue currentDialogue() {
+        if (transientDialogueState != null) {
+            return transientDialogueState.dialogue();
+        }
+        return currentState.activeDialogue();
+    }
+
+    private float mapWidth() {
+        return currentState.gameMap().columnCount() * HubMapRenderer.TILE_SIZE;
+    }
+
+    private float mapHeight() {
+        return currentState.gameMap().rowCount() * HubMapRenderer.TILE_SIZE;
+    }
+
+    private float tileToScreenX(int tileX) {
+        return mapX + (tileX * HubMapRenderer.TILE_SIZE);
+    }
+
+    private float tileToScreenY(int tileY) {
+        return HubMapRenderer.MAP_Y + ((currentState.gameMap().rowCount() - tileY - 1) * HubMapRenderer.TILE_SIZE);
+    }
+
+    private List<String> resolveInitialNoticePages() {
+        if (initialNotice == null || initialNotice.isBlank()) {
+            return List.of();
+        }
+
+        List<String> pages = new ArrayList<>();
+        pages.add(initialNotice);
+        if (progress.getCompletedCount() == 0) {
+            pages.add("방향키로 한 칸씩 움직이고, 조사하고 싶은 오브젝트 정면에서 ENTER나 SPACE를 누르자.");
+        }
+        return pages;
+    }
+
+    private String buildFontCharacters() {
+        Set<Character> characters = new LinkedHashSet<>();
+        appendCharacters(characters, FreeTypeFontGenerator.DEFAULT_CHARS);
+
+        List<String> texts = new ArrayList<>();
+        texts.add(progress.getNextObjective());
+        texts.add(progress.getEndingTitle());
+        texts.add(progress.getEndingLine());
+        texts.addAll(resolveInitialNoticePages());
+        texts.addAll(List.of(
+                "치즈냥",
+                "생일 방송 준비방",
+                "전통 2D 쯔꾸르형 허브",
+                "정면 조사 가능",
+                "아직 잠겨 있음",
+                "test mode",
+                "좌표",
+                "바라보는 방향",
+                "앞 타일",
+                "방향키로 한 칸씩 움직이고, 조사하고 싶은 오브젝트 정면에서 ENTER나 SPACE를 누르자."
+        ));
+
+        for (GameEvent event : currentState.gameMap().events()) {
+            texts.add(event.title());
+            texts.add(event.lockedDialogue().currentLine().text());
+            event.interactionDialogue().lines().forEach(line -> texts.add(line.text()));
+        }
+
+        for (String text : texts) {
+            appendCharacters(characters, text);
+        }
+
+        StringBuilder builder = new StringBuilder(characters.size());
+        for (Character character : characters) {
+            builder.append(character);
+        }
+        return builder.toString();
+    }
+
+    private void appendCharacters(Set<Character> characters, String text) {
+        for (int index = 0; index < text.length(); index += 1) {
+            characters.add(text.charAt(index));
+        }
+    }
+
+    @Override
+    public void dispose() {
+        batch.dispose();
+        bodyFont.dispose();
+        titleFont.dispose();
+        pixelTexture.dispose();
+        portraitTexture.dispose();
+    }
+
+    private static final class TransientDialogueState {
+        private final Dialogue dialogue;
+
+        private TransientDialogueState(String speaker, List<String> pages) {
+            this.dialogue = Dialogue.singleSpeaker(speaker, pages);
+        }
+
+        private TransientDialogueState(Dialogue dialogue) {
+            this.dialogue = dialogue;
+        }
+
+        private Dialogue dialogue() {
+            return dialogue;
+        }
+
+        private TransientDialogueState advance() {
+            if (!dialogue.hasNext()) {
+                return null;
+            }
+            return new TransientDialogueState(dialogue.advance());
+        }
+    }
+}

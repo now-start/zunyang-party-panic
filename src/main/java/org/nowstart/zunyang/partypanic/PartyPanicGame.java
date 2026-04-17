@@ -2,23 +2,28 @@ package org.nowstart.zunyang.partypanic;
 
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Screen;
-import org.nowstart.zunyang.partypanic.application.port.GameNavigator;
-import org.nowstart.zunyang.partypanic.application.story.StoryChapterFactory;
+import lombok.Getter;
+import org.nowstart.zunyang.partypanic.adapter.in.screen.CakeTableScreen;
+import org.nowstart.zunyang.partypanic.adapter.in.screen.HubScreen;
+import org.nowstart.zunyang.partypanic.adapter.in.screen.PartyPanicScreen;
+import org.nowstart.zunyang.partypanic.adapter.in.screen.PhotoTimeScreen;
+import org.nowstart.zunyang.partypanic.adapter.in.screen.StorySequenceScreen;
+import org.nowstart.zunyang.partypanic.adapter.in.screen.TitleScreen;
+import org.nowstart.zunyang.partypanic.config.GameConfig;
+import org.nowstart.zunyang.partypanic.config.GameConfigLoader;
+import org.nowstart.zunyang.partypanic.config.GameModule;
 import org.nowstart.zunyang.partypanic.domain.activity.ActivityId;
 import org.nowstart.zunyang.partypanic.domain.progress.GameProgress;
-import org.nowstart.zunyang.partypanic.infrastructure.config.GameConfig;
-import org.nowstart.zunyang.partypanic.infrastructure.config.GameConfigLoader;
-import org.nowstart.zunyang.partypanic.presentation.screen.CakeTableScreen;
-import org.nowstart.zunyang.partypanic.presentation.screen.HubScreen;
-import org.nowstart.zunyang.partypanic.presentation.screen.PartyPanicScreen;
-import org.nowstart.zunyang.partypanic.presentation.screen.PhotoTimeScreen;
-import org.nowstart.zunyang.partypanic.presentation.screen.StorySequenceScreen;
-import org.nowstart.zunyang.partypanic.presentation.screen.TitleScreen;
+import org.nowstart.zunyang.partypanic.domain.story.StoryChapterFactory;
+import org.nowstart.zunyang.partypanic.application.port.out.GameNavigator;
 
 public final class PartyPanicGame extends Game implements GameNavigator {
+    @Getter
     private final GameConfig config;
+    @Getter
     private final GameProgress progress = new GameProgress();
     private final StoryChapterFactory storyChapterFactory = new StoryChapterFactory();
+    private final GameModule gameModule = new GameModule();
 
     public PartyPanicGame() {
         this(GameConfigLoader.load());
@@ -45,7 +50,7 @@ public final class PartyPanicGame extends Game implements GameNavigator {
 
     @Override
     public void showHub(String notice) {
-        switchTo(new HubScreen(this, progress, notice));
+        switchTo(new HubScreen(this, progress, notice, gameModule.createHubContext(progress)));
     }
 
     @Override
@@ -69,14 +74,6 @@ public final class PartyPanicGame extends Game implements GameNavigator {
     public void completeStoryActivity(ActivityId activityId, String notice) {
         progress.markCompleted(activityId);
         showHub(notice);
-    }
-
-    public GameProgress getProgress() {
-        return progress;
-    }
-
-    public GameConfig getConfig() {
-        return config;
     }
 
     private String resolveScoredCompletionNotice(ActivityId activityId) {

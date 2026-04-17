@@ -1,5 +1,8 @@
 package org.nowstart.zunyang.partypanic.domain.activity;
 
+import lombok.Getter;
+
+@Getter
 public enum ActivityId {
     BROADCAST_DESK("broadcast-desk", true),
     STORAGE_ROOM("storage-room", false),
@@ -15,13 +18,5 @@ public enum ActivityId {
     ActivityId(String code, boolean scored) {
         this.code = code;
         this.scored = scored;
-    }
-
-    public String code() {
-        return code;
-    }
-
-    public boolean isScored() {
-        return scored;
     }
 }

@@ -2,14 +2,15 @@ plugins {
     id 'application'
 }
 
+group = 'org.nowstart'
+version = '0.0.1'
+
 ext {
     gdxVersion = '1.14.0'
     lwjglVersion = '3.4.0'
     junitVersion = '5.10.2'
+    lombokVersion = '1.18.44'
 }
-
-group = 'org.nowstart'
-version = '0.0.1-SNAPSHOT'
 
 repositories {
     mavenCentral()
@@ -28,13 +29,22 @@ dependencies {
     runtimeOnly "com.badlogicgames.gdx:gdx-platform:${gdxVersion}:natives-desktop"
     runtimeOnly "com.badlogicgames.gdx:gdx-freetype-platform:${gdxVersion}:natives-desktop"
 
+    compileOnly "org.projectlombok:lombok:${lombokVersion}"
+    annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+
     testImplementation "org.junit.jupiter:junit-jupiter:${junitVersion}"
     testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+    testCompileOnly "org.projectlombok:lombok:${lombokVersion}"
+    testAnnotationProcessor "org.projectlombok:lombok:${lombokVersion}"
 }
 
 application {
     mainClass = 'org.nowstart.zunyang.partypanic.DesktopLauncher'
-    applicationDefaultJvmArgs = ['--enable-native-access=ALL-UNNAMED']
+    applicationDefaultJvmArgs = [
+            '--enable-native-access=ALL-UNNAMED'
+    ] + (System.getProperty('os.name').toLowerCase().contains('mac')
+            ? ['-XstartOnFirstThread']
+            : [])
 }
 
 test {

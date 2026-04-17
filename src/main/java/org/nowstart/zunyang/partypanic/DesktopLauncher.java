@@ -2,8 +2,8 @@ package org.nowstart.zunyang.partypanic;
 
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
-import org.nowstart.zunyang.partypanic.infrastructure.config.GameConfig;
-import org.nowstart.zunyang.partypanic.infrastructure.config.GameConfigLoader;
+import org.nowstart.zunyang.partypanic.config.GameConfig;
+import org.nowstart.zunyang.partypanic.config.GameConfigLoader;
 
 public final class DesktopLauncher {
     public static void main(String[] args) {
