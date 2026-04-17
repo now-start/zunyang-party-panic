@@ -10,9 +10,7 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
-import java.util.EnumMap;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 import org.nowstart.zunyang.partypanic.adapter.in.common.ui.DebugHudRenderer;
 import org.nowstart.zunyang.partypanic.adapter.in.common.ui.SampleFontId;
@@ -21,6 +19,7 @@ import org.nowstart.zunyang.partypanic.adapter.in.common.ui.SampleIconId;
 import org.nowstart.zunyang.partypanic.adapter.in.common.ui.SampleIconLibrary;
 import org.nowstart.zunyang.partypanic.adapter.in.common.ui.SampleTextureId;
 import org.nowstart.zunyang.partypanic.adapter.in.common.ui.SampleTextureLibrary;
+import org.nowstart.zunyang.partypanic.adapter.in.common.ui.SampleVisualCatalog;
 import org.nowstart.zunyang.partypanic.application.dto.command.MoveHubActorCommand;
 import org.nowstart.zunyang.partypanic.application.dto.result.HubHotspotView;
 import org.nowstart.zunyang.partypanic.application.dto.result.HubViewResult;
@@ -50,7 +49,7 @@ public final class HubPreviewScreen extends ScreenAdapter {
     private final SampleIconLibrary iconLibrary = new SampleIconLibrary();
     private final SampleTextureLibrary textureLibrary = new SampleTextureLibrary();
     private final DebugHudRenderer debugHudRenderer = new DebugHudRenderer();
-    private final Map<ChapterId, SampleTextureId> textureByChapter = new EnumMap<>(ChapterId.class);
+    private final SampleVisualCatalog visualCatalog = SampleVisualCatalog.defaultCatalog();
 
     private HubViewResult hubView;
     private boolean debugHudVisible = true;
@@ -67,13 +66,6 @@ public final class HubPreviewScreen extends ScreenAdapter {
         this.interactHubUseCase = interactHubUseCase;
         this.onOpenChapter = onOpenChapter;
         this.onRestartSession = onRestartSession;
-        this.textureByChapter.put(ChapterId.SIGNAL, SampleTextureId.SIGNAL_CARD);
-        this.textureByChapter.put(ChapterId.PROPS, SampleTextureId.PROPS_CARD);
-        this.textureByChapter.put(ChapterId.CENTERPIECE, SampleTextureId.CENTERPIECE_CARD);
-        this.textureByChapter.put(ChapterId.PHOTO, SampleTextureId.PHOTO_CARD);
-        this.textureByChapter.put(ChapterId.HANDOVER, SampleTextureId.HANDOVER_CARD);
-        this.textureByChapter.put(ChapterId.MESSAGE, SampleTextureId.MESSAGE_CARD);
-        this.textureByChapter.put(ChapterId.FINALE, SampleTextureId.FINALE_STAGE);
     }
 
     @Override
@@ -150,7 +142,7 @@ public final class HubPreviewScreen extends ScreenAdapter {
             float x = MARGIN + (hotspot.x() * cellWidth) + ((cellWidth - cardWidth) / 2f);
             float y = gridBottom + (hotspot.y() * cellHeight) + ((cellHeight - cardHeight) / 2f);
             SampleTextureId textureId = hotspot.unlocked()
-                ? textureByChapter.get(ChapterId.valueOf(hotspot.id()))
+                ? visualCatalog.chapterCard(ChapterId.valueOf(hotspot.id()))
                 : SampleTextureId.LOCKED_CARD;
             batch.draw(textureLibrary.region(textureId), x, y, cardWidth, cardHeight);
             bodyFont.draw(batch, hotspotLabel(hotspot), x + 12f, y + 22f);
@@ -248,7 +240,7 @@ public final class HubPreviewScreen extends ScreenAdapter {
             .filter(hotspot -> hotspot.id().equals(hubView.activeHotspotId()))
             .findFirst()
             .map(hotspot -> hotspot.unlocked()
-                ? textureByChapter.get(ChapterId.valueOf(hotspot.id()))
+                ? visualCatalog.chapterCard(ChapterId.valueOf(hotspot.id()))
                 : SampleTextureId.LOCKED_CARD)
             .orElse(null);
     }

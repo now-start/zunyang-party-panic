@@ -11,8 +11,17 @@ import java.util.Map;
 
 public final class SampleTextureLibrary implements Disposable {
 
+    private final SampleAssetManifest assetManifest;
     private final Map<SampleTextureId, Texture> textures = new EnumMap<>(SampleTextureId.class);
     private final Map<SampleTextureId, TextureSource> textureSources = new EnumMap<>(SampleTextureId.class);
+
+    public SampleTextureLibrary() {
+        this(SampleAssetManifest.defaultManifest());
+    }
+
+    public SampleTextureLibrary(SampleAssetManifest assetManifest) {
+        this.assetManifest = assetManifest;
+    }
 
     public TextureRegion region(SampleTextureId id) {
         ensureLoaded(id);
@@ -36,8 +45,9 @@ public final class SampleTextureLibrary implements Disposable {
 
     private LoadedTexture loadTexture(SampleTextureId id) {
         SampleTextureSpec spec = SampleTextureSpec.forId(id);
-        if (spec.assetPath() != null) {
-            FileHandle fileHandle = Gdx.files.internal(spec.assetPath());
+        String assetPath = assetManifest.texturePath(id);
+        if (assetPath != null && Gdx.files != null) {
+            FileHandle fileHandle = Gdx.files.internal(assetPath);
             if (fileHandle.exists()) {
                 return new LoadedTexture(
                     new Texture(fileHandle),

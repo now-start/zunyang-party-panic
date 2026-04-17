@@ -11,7 +11,6 @@ import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 import org.nowstart.zunyang.partypanic.adapter.in.common.ui.DebugHudRenderer;
 import org.nowstart.zunyang.partypanic.adapter.in.common.ui.SampleFontId;
@@ -20,6 +19,7 @@ import org.nowstart.zunyang.partypanic.adapter.in.common.ui.SampleIconId;
 import org.nowstart.zunyang.partypanic.adapter.in.common.ui.SampleIconLibrary;
 import org.nowstart.zunyang.partypanic.adapter.in.common.ui.SampleTextureId;
 import org.nowstart.zunyang.partypanic.adapter.in.common.ui.SampleTextureLibrary;
+import org.nowstart.zunyang.partypanic.adapter.in.common.ui.SampleVisualCatalog;
 import org.nowstart.zunyang.partypanic.application.dto.result.ChapterViewResult;
 import org.nowstart.zunyang.partypanic.application.port.in.AdvanceChapterUseCase;
 import org.nowstart.zunyang.partypanic.application.port.in.SkipChapterUseCase;
@@ -46,15 +46,7 @@ public final class ChapterPreviewScreen extends ScreenAdapter {
     private final SampleIconLibrary iconLibrary = new SampleIconLibrary();
     private final SampleTextureLibrary textureLibrary = new SampleTextureLibrary();
     private final DebugHudRenderer debugHudRenderer = new DebugHudRenderer();
-    private final Map<String, SampleTextureId> visualTokenMap = Map.of(
-        "signal", SampleTextureId.SIGNAL_CARD,
-        "props", SampleTextureId.PROPS_CARD,
-        "centerpiece", SampleTextureId.CENTERPIECE_CARD,
-        "photo", SampleTextureId.PHOTO_CARD,
-        "handover", SampleTextureId.HANDOVER_CARD,
-        "message", SampleTextureId.MESSAGE_CARD,
-        "finale", SampleTextureId.FINALE_STAGE
-    );
+    private final SampleVisualCatalog visualCatalog = SampleVisualCatalog.defaultCatalog();
 
     private ChapterViewResult chapterView;
     private boolean debugHudVisible = true;
@@ -169,7 +161,7 @@ public final class ChapterPreviewScreen extends ScreenAdapter {
     }
 
     private SampleTextureId resolveVisual() {
-        return visualTokenMap.getOrDefault(chapterView.visualToken(), SampleTextureId.HUB_BACKGROUND);
+        return visualCatalog.visualToken(chapterView.visualToken());
     }
 
     private void drawControlHint(float x, float y, SampleIconId iconId, String label) {

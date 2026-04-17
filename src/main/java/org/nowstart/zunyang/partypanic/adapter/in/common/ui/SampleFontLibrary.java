@@ -10,8 +10,17 @@ import java.util.Map;
 
 public final class SampleFontLibrary implements Disposable {
 
+    private final SampleAssetManifest assetManifest;
     private final Map<SampleFontId, BitmapFont> fonts = new EnumMap<>(SampleFontId.class);
     private final Map<SampleFontId, FontSource> fontSources = new EnumMap<>(SampleFontId.class);
+
+    public SampleFontLibrary() {
+        this(SampleAssetManifest.defaultManifest());
+    }
+
+    public SampleFontLibrary(SampleAssetManifest assetManifest) {
+        this.assetManifest = assetManifest;
+    }
 
     public BitmapFont font(SampleFontId id) {
         ensureLoaded(id);
@@ -35,8 +44,9 @@ public final class SampleFontLibrary implements Disposable {
 
     private LoadedFont loadFont(SampleFontId id) {
         SampleFontSpec spec = SampleFontSpec.forId(id);
-        if (spec.assetPath() != null && Gdx.files != null) {
-            FileHandle fileHandle = Gdx.files.internal(spec.assetPath());
+        String assetPath = assetManifest.fontPath(id);
+        if (assetPath != null && Gdx.files != null) {
+            FileHandle fileHandle = Gdx.files.internal(assetPath);
             if (fileHandle.exists()) {
                 return new LoadedFont(loadAssetFont(fileHandle, spec), new FontSource(false));
             }

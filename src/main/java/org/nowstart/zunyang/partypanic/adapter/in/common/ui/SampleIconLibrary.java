@@ -12,8 +12,17 @@ import java.util.Map;
 
 public final class SampleIconLibrary implements Disposable {
 
+    private final SampleAssetManifest assetManifest;
     private final Map<SampleIconId, Texture> textures = new EnumMap<>(SampleIconId.class);
     private final Map<SampleIconId, IconSource> iconSources = new EnumMap<>(SampleIconId.class);
+
+    public SampleIconLibrary() {
+        this(SampleAssetManifest.defaultManifest());
+    }
+
+    public SampleIconLibrary(SampleAssetManifest assetManifest) {
+        this.assetManifest = assetManifest;
+    }
 
     public TextureRegion region(SampleIconId id) {
         ensureLoaded(id);
@@ -37,8 +46,9 @@ public final class SampleIconLibrary implements Disposable {
 
     private LoadedIcon loadIcon(SampleIconId id) {
         SampleIconSpec spec = SampleIconSpec.forId(id);
-        if (spec.assetPath() != null && Gdx.files != null) {
-            FileHandle fileHandle = Gdx.files.internal(spec.assetPath());
+        String assetPath = assetManifest.iconPath(id);
+        if (assetPath != null && Gdx.files != null) {
+            FileHandle fileHandle = Gdx.files.internal(assetPath);
             if (fileHandle.exists()) {
                 return new LoadedIcon(new Texture(fileHandle), new IconSource(false));
             }

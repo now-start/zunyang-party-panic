@@ -3,7 +3,6 @@ package org.nowstart.zunyang.partypanic.adapter.in.common.ui;
 import com.badlogic.gdx.graphics.Color;
 
 public record SampleIconSpec(
-    String assetPath,
     int size,
     Color fill,
     Color panel,
@@ -14,7 +13,6 @@ public record SampleIconSpec(
     public static SampleIconSpec forId(SampleIconId id) {
         return switch (id) {
             case MOVE -> new SampleIconSpec(
-                "assets/images/ui/icons/move.png",
                 64,
                 Color.valueOf("29465B"),
                 Color.valueOf("4E6E81"),
@@ -22,7 +20,6 @@ public record SampleIconSpec(
                 Color.valueOf("FFE082")
             );
             case INTERACT -> new SampleIconSpec(
-                "assets/images/ui/icons/interact.png",
                 64,
                 Color.valueOf("4E2F5D"),
                 Color.valueOf("7A4D94"),
@@ -30,7 +27,6 @@ public record SampleIconSpec(
                 Color.valueOf("FFD8A8")
             );
             case OPEN_CHAPTER -> new SampleIconSpec(
-                "assets/images/ui/icons/open-chapter.png",
                 64,
                 Color.valueOf("365B43"),
                 Color.valueOf("5F8B6B"),
@@ -38,7 +34,6 @@ public record SampleIconSpec(
                 Color.valueOf("FFF3BF")
             );
             case NEXT -> new SampleIconSpec(
-                "assets/images/ui/icons/next.png",
                 64,
                 Color.valueOf("334155"),
                 Color.valueOf("64748B"),
@@ -46,7 +41,6 @@ public record SampleIconSpec(
                 Color.valueOf("F59E0B")
             );
             case SKIP -> new SampleIconSpec(
-                "assets/images/ui/icons/skip.png",
                 64,
                 Color.valueOf("5B3A29"),
                 Color.valueOf("8C5A3C"),
@@ -54,7 +48,6 @@ public record SampleIconSpec(
                 Color.valueOf("FED7AA")
             );
             case DEBUG -> new SampleIconSpec(
-                "assets/images/ui/icons/debug.png",
                 64,
                 Color.valueOf("3F3F46"),
                 Color.valueOf("71717A"),
@@ -62,7 +55,6 @@ public record SampleIconSpec(
                 Color.valueOf("C4B5FD")
             );
             case RESTART -> new SampleIconSpec(
-                "assets/images/ui/icons/restart.png",
                 64,
                 Color.valueOf("4C1D95"),
                 Color.valueOf("7C3AED"),
@@ -70,7 +62,6 @@ public record SampleIconSpec(
                 Color.valueOf("DDD6FE")
             );
             case HUB -> new SampleIconSpec(
-                "assets/images/ui/icons/hub.png",
                 64,
                 Color.valueOf("14532D"),
                 Color.valueOf("15803D"),
