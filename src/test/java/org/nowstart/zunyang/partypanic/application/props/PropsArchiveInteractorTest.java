@@ -12,13 +12,17 @@ import org.nowstart.zunyang.partypanic.application.port.out.LoadPropsArchiveStat
 import org.nowstart.zunyang.partypanic.application.port.out.SavePropsArchiveStatePort;
 import org.nowstart.zunyang.partypanic.domain.common.Direction;
 import org.nowstart.zunyang.partypanic.domain.props.PropsArchiveState;
+import org.nowstart.zunyang.partypanic.support.ActivityTestLayouts;
 
 class PropsArchiveInteractorTest {
 
     @Test
     void start_initializes_archive_state() {
         InMemoryPropsArchivePort statePort = new InMemoryPropsArchivePort();
-        StartPropsArchiveInteractor interactor = new StartPropsArchiveInteractor(statePort);
+        StartPropsArchiveInteractor interactor = new StartPropsArchiveInteractor(
+            ActivityTestLayouts::propsArchive,
+            statePort
+        );
 
         PropsArchiveViewResult result = interactor.start();
 
@@ -32,7 +36,10 @@ class PropsArchiveInteractorTest {
     @Test
     void inspecting_required_items_updates_inventory_count() {
         InMemoryPropsArchivePort statePort = new InMemoryPropsArchivePort();
-        StartPropsArchiveInteractor startInteractor = new StartPropsArchiveInteractor(statePort);
+        StartPropsArchiveInteractor startInteractor = new StartPropsArchiveInteractor(
+            ActivityTestLayouts::propsArchive,
+            statePort
+        );
         MovePropsActorInteractor moveInteractor = new MovePropsActorInteractor(statePort, statePort);
         InspectPropsItemInteractor inspectInteractor = new InspectPropsItemInteractor(statePort, statePort);
 

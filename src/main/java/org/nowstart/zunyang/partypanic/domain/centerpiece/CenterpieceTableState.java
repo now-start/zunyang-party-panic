@@ -6,9 +6,11 @@ import java.util.EnumSet;
 import java.util.Objects;
 import java.util.Set;
 import org.nowstart.zunyang.partypanic.domain.common.Direction;
+import org.nowstart.zunyang.partypanic.domain.common.GridActivityLayout;
 import org.nowstart.zunyang.partypanic.domain.common.Position;
 
 public record CenterpieceTableState(
+    GridActivityLayout<CenterpiecePlacementId> layout,
     Position actorPosition,
     Direction facing,
     CenterpiecePlacementId activePlacement,
@@ -18,10 +20,8 @@ public record CenterpieceTableState(
     String statusMessage
 ) {
 
-    private static final int WIDTH = 7;
-    private static final int HEIGHT = 5;
-
     public CenterpieceTableState {
+        Objects.requireNonNull(layout, "layout must not be null");
         Objects.requireNonNull(actorPosition, "actorPosition must not be null");
         Objects.requireNonNull(facing, "facing must not be null");
         Objects.requireNonNull(placedItems, "placedItems must not be null");
@@ -37,28 +37,30 @@ public record CenterpieceTableState(
         reviewedOptionalPlacements = Collections.unmodifiableSet(reviewedNormalized);
     }
 
-    public static CenterpieceTableState initial() {
-        Position start = new Position(3, 2);
+    public static CenterpieceTableState initial(GridActivityLayout<CenterpiecePlacementId> layout) {
+        Position start = layout.actorStart();
         return refresh(
+            layout,
             start,
             Direction.UP,
             null,
             Set.of(),
             Set.of(),
-            previewMessage(Direction.UP, start)
+            previewMessage(layout, Direction.UP, start)
         );
     }
 
     public CenterpieceTableState move(Direction direction) {
         Position nextPosition = actorPosition.translate(direction);
-        Position resolved = isWalkable(nextPosition) ? nextPosition : actorPosition;
+        Position resolved = layout.isWalkable(nextPosition) ? nextPosition : actorPosition;
         return refresh(
+            layout,
             resolved,
             direction,
             null,
             placedItems,
             reviewedOptionalPlacements,
-            previewMessage(direction, resolved)
+            previewMessage(layout, direction, resolved)
         );
     }
 
@@ -66,6 +68,7 @@ public record CenterpieceTableState(
         CenterpiecePlacementId placement = facingPlacement();
         if (placement == null) {
             return refresh(
+                layout,
                 actorPosition,
                 facing,
                 null,
@@ -77,6 +80,7 @@ public record CenterpieceTableState(
 
         if (placedItems.contains(placement)) {
             return refresh(
+                layout,
                 actorPosition,
                 facing,
                 placement,
@@ -91,6 +95,7 @@ public record CenterpieceTableState(
             nextPlaced.addAll(placedItems);
             nextPlaced.add(placement);
             return refresh(
+                layout,
                 actorPosition,
                 facing,
                 placement,
@@ -102,6 +107,7 @@ public record CenterpieceTableState(
 
         if (reviewedOptionalPlacements.contains(placement)) {
             return refresh(
+                layout,
                 actorPosition,
                 facing,
                 placement,
@@ -116,6 +122,7 @@ public record CenterpieceTableState(
         nextReviewed.add(placement);
 
         return refresh(
+            layout,
             actorPosition,
             facing,
             placement,
@@ -138,18 +145,19 @@ public record CenterpieceTableState(
     }
 
     public CenterpiecePlacementId facingPlacement() {
-        return placementAt(actorPosition.translate(facing));
+        return layout.pointAt(actorPosition.translate(facing));
     }
 
     public int width() {
-        return WIDTH;
+        return layout.width();
     }
 
     public int height() {
-        return HEIGHT;
+        return layout.height();
     }
 
     private static CenterpieceTableState refresh(
+        GridActivityLayout<CenterpiecePlacementId> layout,
         Position actorPosition,
         Direction facing,
         CenterpiecePlacementId activePlacement,
@@ -166,6 +174,7 @@ public record CenterpieceTableState(
             : statusMessage;
 
         return new CenterpieceTableState(
+            layout,
             actorPosition,
             facing,
             activePlacement,
@@ -176,23 +185,12 @@ public record CenterpieceTableState(
         );
     }
 
-    private static boolean isWalkable(Position position) {
-        return position.x() >= 0
-            && position.x() < WIDTH
-            && position.y() >= 0
-            && position.y() < HEIGHT
-            && placementAt(position) == null;
-    }
-
-    private static CenterpiecePlacementId placementAt(Position position) {
-        return Arrays.stream(CenterpiecePlacementId.values())
-            .filter(item -> item.position().equals(position))
-            .findFirst()
-            .orElse(null);
-    }
-
-    private static String previewMessage(Direction direction, Position actorPosition) {
-        CenterpiecePlacementId placement = placementAt(actorPosition.translate(direction));
+    private static String previewMessage(
+        GridActivityLayout<CenterpiecePlacementId> layout,
+        Direction direction,
+        Position actorPosition
+    ) {
+        CenterpiecePlacementId placement = layout.pointAt(actorPosition.translate(direction));
         if (placement == null) {
             return "중앙 테이블 둘레를 돌며 비어 보이는 지점을 먼저 본다.";
         }

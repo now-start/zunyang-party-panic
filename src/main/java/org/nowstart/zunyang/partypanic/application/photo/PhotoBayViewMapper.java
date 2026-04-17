@@ -3,6 +3,7 @@ package org.nowstart.zunyang.partypanic.application.photo;
 import java.util.Arrays;
 import org.nowstart.zunyang.partypanic.application.dto.result.PhotoBayViewResult;
 import org.nowstart.zunyang.partypanic.application.dto.result.PhotoFocusView;
+import org.nowstart.zunyang.partypanic.domain.common.Position;
 import org.nowstart.zunyang.partypanic.domain.photo.PhotoBayState;
 import org.nowstart.zunyang.partypanic.domain.photo.PhotoFocusId;
 
@@ -33,15 +34,18 @@ final class PhotoBayViewMapper {
             state.readyToReturn(),
             state.statusMessage(),
             Arrays.stream(PhotoFocusId.values())
-                .map(focus -> new PhotoFocusView(
-                    focus.name(),
-                    focus.label(),
-                    focus.position().x(),
-                    focus.position().y(),
-                    focus.required(),
-                    state.locked(focus),
-                    state.activeFocus() == focus
-                ))
+                .map(focus -> {
+                    Position position = state.layout().positionOf(focus);
+                    return new PhotoFocusView(
+                        focus.name(),
+                        focus.label(),
+                        position.x(),
+                        position.y(),
+                        focus.required(),
+                        state.locked(focus),
+                        state.activeFocus() == focus
+                    );
+                })
                 .toList()
         );
     }

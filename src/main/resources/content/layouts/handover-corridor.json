@@ -1,0 +1,16 @@
+{
+  "width": 7,
+  "height": 5,
+  "actorStart": {
+    "x": 3,
+    "y": 2
+  },
+  "points": [
+    { "id": "OLD_CUESHEET", "x": 1, "y": 3 },
+    { "id": "PHOTO_FRAME", "x": 3, "y": 3 },
+    { "id": "MEMO_BOARD", "x": 5, "y": 3 },
+    { "id": "PROJECTOR", "x": 1, "y": 1 },
+    { "id": "ACCESS_PASS", "x": 3, "y": 1 },
+    { "id": "PACKED_BOX", "x": 5, "y": 1 }
+  ]
+}

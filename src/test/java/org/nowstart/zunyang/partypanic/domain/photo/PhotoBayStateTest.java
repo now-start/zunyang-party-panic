@@ -5,12 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 import org.nowstart.zunyang.partypanic.domain.common.Direction;
+import org.nowstart.zunyang.partypanic.support.ActivityTestLayouts;
 
 class PhotoBayStateTest {
 
     @Test
     void locking_required_focuses_makes_photo_ready() {
-        PhotoBayState state = PhotoBayState.initial();
+        PhotoBayState state = PhotoBayState.initial(ActivityTestLayouts.photoBay());
 
         state = state.move(Direction.UP).inspect();
         state = state.move(Direction.DOWN).move(Direction.LEFT).move(Direction.LEFT).inspect();
@@ -24,7 +25,7 @@ class PhotoBayStateTest {
 
     @Test
     void optional_focus_is_left_for_later() {
-        PhotoBayState state = PhotoBayState.initial()
+        PhotoBayState state = PhotoBayState.initial(ActivityTestLayouts.photoBay())
             .move(Direction.DOWN)
             .inspect();
 

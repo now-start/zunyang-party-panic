@@ -6,9 +6,11 @@ import java.util.EnumSet;
 import java.util.Objects;
 import java.util.Set;
 import org.nowstart.zunyang.partypanic.domain.common.Direction;
+import org.nowstart.zunyang.partypanic.domain.common.GridActivityLayout;
 import org.nowstart.zunyang.partypanic.domain.common.Position;
 
 public record FinaleStageState(
+    GridActivityLayout<FinaleCheckpointId> layout,
     Position actorPosition,
     Direction facing,
     FinaleCheckpointId activeCheckpoint,
@@ -18,10 +20,8 @@ public record FinaleStageState(
     String statusMessage
 ) {
 
-    private static final int WIDTH = 7;
-    private static final int HEIGHT = 5;
-
     public FinaleStageState {
+        Objects.requireNonNull(layout, "layout must not be null");
         Objects.requireNonNull(actorPosition, "actorPosition must not be null");
         Objects.requireNonNull(facing, "facing must not be null");
         Objects.requireNonNull(checkedCheckpoints, "checkedCheckpoints must not be null");
@@ -37,28 +37,30 @@ public record FinaleStageState(
         reviewedOptionalCheckpoints = Collections.unmodifiableSet(reviewedNormalized);
     }
 
-    public static FinaleStageState initial() {
-        Position start = new Position(3, 2);
+    public static FinaleStageState initial(GridActivityLayout<FinaleCheckpointId> layout) {
+        Position start = layout.actorStart();
         return refresh(
+            layout,
             start,
             Direction.UP,
             null,
             Set.of(),
             Set.of(),
-            previewMessage(Direction.UP, start)
+            previewMessage(layout, Direction.UP, start)
         );
     }
 
     public FinaleStageState move(Direction direction) {
         Position nextPosition = actorPosition.translate(direction);
-        Position resolved = isWalkable(nextPosition) ? nextPosition : actorPosition;
+        Position resolved = layout.isWalkable(nextPosition) ? nextPosition : actorPosition;
         return refresh(
+            layout,
             resolved,
             direction,
             null,
             checkedCheckpoints,
             reviewedOptionalCheckpoints,
-            previewMessage(direction, resolved)
+            previewMessage(layout, direction, resolved)
         );
     }
 
@@ -66,6 +68,7 @@ public record FinaleStageState(
         FinaleCheckpointId checkpoint = facingCheckpoint();
         if (checkpoint == null) {
             return refresh(
+                layout,
                 actorPosition,
                 facing,
                 null,
@@ -77,6 +80,7 @@ public record FinaleStageState(
 
         if (checkedCheckpoints.contains(checkpoint)) {
             return refresh(
+                layout,
                 actorPosition,
                 facing,
                 checkpoint,
@@ -91,6 +95,7 @@ public record FinaleStageState(
             nextChecked.addAll(checkedCheckpoints);
             nextChecked.add(checkpoint);
             return refresh(
+                layout,
                 actorPosition,
                 facing,
                 checkpoint,
@@ -102,6 +107,7 @@ public record FinaleStageState(
 
         if (reviewedOptionalCheckpoints.contains(checkpoint)) {
             return refresh(
+                layout,
                 actorPosition,
                 facing,
                 checkpoint,
@@ -116,6 +122,7 @@ public record FinaleStageState(
         nextReviewed.add(checkpoint);
 
         return refresh(
+            layout,
             actorPosition,
             facing,
             checkpoint,
@@ -138,18 +145,19 @@ public record FinaleStageState(
     }
 
     public FinaleCheckpointId facingCheckpoint() {
-        return checkpointAt(actorPosition.translate(facing));
+        return layout.pointAt(actorPosition.translate(facing));
     }
 
     public int width() {
-        return WIDTH;
+        return layout.width();
     }
 
     public int height() {
-        return HEIGHT;
+        return layout.height();
     }
 
     private static FinaleStageState refresh(
+        GridActivityLayout<FinaleCheckpointId> layout,
         Position actorPosition,
         Direction facing,
         FinaleCheckpointId activeCheckpoint,
@@ -166,6 +174,7 @@ public record FinaleStageState(
             : statusMessage;
 
         return new FinaleStageState(
+            layout,
             actorPosition,
             facing,
             activeCheckpoint,
@@ -176,23 +185,12 @@ public record FinaleStageState(
         );
     }
 
-    private static boolean isWalkable(Position position) {
-        return position.x() >= 0
-            && position.x() < WIDTH
-            && position.y() >= 0
-            && position.y() < HEIGHT
-            && checkpointAt(position) == null;
-    }
-
-    private static FinaleCheckpointId checkpointAt(Position position) {
-        return Arrays.stream(FinaleCheckpointId.values())
-            .filter(checkpoint -> checkpoint.position().equals(position))
-            .findFirst()
-            .orElse(null);
-    }
-
-    private static String previewMessage(Direction direction, Position actorPosition) {
-        FinaleCheckpointId checkpoint = checkpointAt(actorPosition.translate(direction));
+    private static String previewMessage(
+        GridActivityLayout<FinaleCheckpointId> layout,
+        Direction direction,
+        Position actorPosition
+    ) {
+        FinaleCheckpointId checkpoint = layout.pointAt(actorPosition.translate(direction));
         if (checkpoint == null) {
             return "메인 스테이지를 돌며 마지막 점검 지점을 확인한다.";
         }

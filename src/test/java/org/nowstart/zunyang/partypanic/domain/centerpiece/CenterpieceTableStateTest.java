@@ -5,12 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 import org.nowstart.zunyang.partypanic.domain.common.Direction;
+import org.nowstart.zunyang.partypanic.support.ActivityTestLayouts;
 
 class CenterpieceTableStateTest {
 
     @Test
     void placing_required_points_makes_table_ready() {
-        CenterpieceTableState state = CenterpieceTableState.initial();
+        CenterpieceTableState state = CenterpieceTableState.initial(ActivityTestLayouts.centerpieceTable());
 
         state = state.move(Direction.UP).inspect();
         state = state.move(Direction.DOWN).move(Direction.LEFT).inspect();
@@ -24,7 +25,7 @@ class CenterpieceTableStateTest {
 
     @Test
     void optional_point_is_left_for_later() {
-        CenterpieceTableState state = CenterpieceTableState.initial()
+        CenterpieceTableState state = CenterpieceTableState.initial(ActivityTestLayouts.centerpieceTable())
             .move(Direction.DOWN)
             .inspect();
 

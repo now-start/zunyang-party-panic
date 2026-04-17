@@ -12,6 +12,7 @@ import org.nowstart.zunyang.partypanic.domain.photo.PhotoBayState;
 import org.nowstart.zunyang.partypanic.domain.props.PropsArchiveState;
 import org.nowstart.zunyang.partypanic.domain.session.EndingSignals;
 import org.nowstart.zunyang.partypanic.domain.signal.SignalConsoleState;
+import org.nowstart.zunyang.partypanic.support.ActivityTestLayouts;
 
 class ActivityEndingSignalsAdapterTest {
 
@@ -26,11 +27,11 @@ class ActivityEndingSignalsAdapterTest {
         InMemoryFinaleStageStateAdapter finaleAdapter = new InMemoryFinaleStageStateAdapter();
 
         signalAdapter.save(allControlsInspected());
-        propsAdapter.save(PropsArchiveState.initial().move(Direction.LEFT).move(Direction.LEFT).move(Direction.DOWN).inspect());
-        centerpieceAdapter.save(CenterpieceTableState.initial().move(Direction.DOWN).inspect());
-        photoAdapter.save(PhotoBayState.initial().move(Direction.DOWN).inspect());
+        propsAdapter.save(PropsArchiveState.initial(ActivityTestLayouts.propsArchive()).move(Direction.LEFT).move(Direction.LEFT).move(Direction.DOWN).inspect());
+        centerpieceAdapter.save(CenterpieceTableState.initial(ActivityTestLayouts.centerpieceTable()).move(Direction.DOWN).inspect());
+        photoAdapter.save(PhotoBayState.initial(ActivityTestLayouts.photoBay()).move(Direction.DOWN).inspect());
         handoverAdapter.save(
-            HandoverCorridorState.initial()
+            HandoverCorridorState.initial(ActivityTestLayouts.handoverCorridor())
                 .move(Direction.LEFT)
                 .move(Direction.LEFT)
                 .move(Direction.DOWN)
@@ -41,7 +42,7 @@ class ActivityEndingSignalsAdapterTest {
                 .inspect()
         );
         messageAdapter.save(
-            MessageWallState.initial()
+            MessageWallState.initial(ActivityTestLayouts.messageWall())
                 .move(Direction.LEFT)
                 .move(Direction.LEFT)
                 .move(Direction.DOWN)
@@ -51,7 +52,7 @@ class ActivityEndingSignalsAdapterTest {
                 .move(Direction.DOWN)
                 .inspect()
         );
-        finaleAdapter.save(FinaleStageState.initial().move(Direction.LEFT).move(Direction.LEFT).move(Direction.DOWN).inspect());
+        finaleAdapter.save(FinaleStageState.initial(ActivityTestLayouts.finaleStage()).move(Direction.LEFT).move(Direction.LEFT).move(Direction.DOWN).inspect());
 
         ActivityEndingSignalsAdapter adapter = new ActivityEndingSignalsAdapter(
             signalAdapter,
@@ -71,7 +72,7 @@ class ActivityEndingSignalsAdapterTest {
     }
 
     private static SignalConsoleState allControlsInspected() {
-        SignalConsoleState state = SignalConsoleState.initial();
+        SignalConsoleState state = SignalConsoleState.initial(ActivityTestLayouts.signalConsole());
         state = state.move(Direction.LEFT).move(Direction.UP).inspect();
         state = state.move(Direction.RIGHT).move(Direction.RIGHT).move(Direction.UP).inspect();
         state = state.move(Direction.LEFT).move(Direction.LEFT).move(Direction.DOWN).inspect();

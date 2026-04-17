@@ -1,0 +1,15 @@
+{
+  "width": 7,
+  "height": 5,
+  "actorStart": {
+    "x": 3,
+    "y": 2
+  },
+  "points": [
+    { "id": "COUNTDOWN_LAMP", "x": 1, "y": 3 },
+    { "id": "STREAMER_MARK", "x": 3, "y": 3 },
+    { "id": "GO_CUE_PANEL", "x": 5, "y": 3 },
+    { "id": "SIDE_CURTAIN", "x": 1, "y": 1 },
+    { "id": "PROP_TABLE", "x": 5, "y": 1 }
+  ]
+}

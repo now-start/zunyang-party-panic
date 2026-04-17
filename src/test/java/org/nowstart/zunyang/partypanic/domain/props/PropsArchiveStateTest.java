@@ -5,12 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 import org.nowstart.zunyang.partypanic.domain.common.Direction;
+import org.nowstart.zunyang.partypanic.support.ActivityTestLayouts;
 
 class PropsArchiveStateTest {
 
     @Test
     void collecting_only_required_items_makes_archive_ready() {
-        PropsArchiveState state = PropsArchiveState.initial();
+        PropsArchiveState state = PropsArchiveState.initial(ActivityTestLayouts.propsArchive());
 
         state = state.inspect();
         state = state.move(Direction.LEFT).move(Direction.LEFT).move(Direction.UP).inspect();
@@ -24,7 +25,7 @@ class PropsArchiveStateTest {
 
     @Test
     void optional_item_is_left_in_place() {
-        PropsArchiveState state = PropsArchiveState.initial()
+        PropsArchiveState state = PropsArchiveState.initial(ActivityTestLayouts.propsArchive())
             .move(Direction.LEFT)
             .move(Direction.LEFT)
             .move(Direction.DOWN)

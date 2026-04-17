@@ -12,13 +12,17 @@ import org.nowstart.zunyang.partypanic.application.port.out.LoadMessageWallState
 import org.nowstart.zunyang.partypanic.application.port.out.SaveMessageWallStatePort;
 import org.nowstart.zunyang.partypanic.domain.common.Direction;
 import org.nowstart.zunyang.partypanic.domain.message.MessageWallState;
+import org.nowstart.zunyang.partypanic.support.ActivityTestLayouts;
 
 class MessageWallInteractorTest {
 
     @Test
     void start_initializes_message_wall_state() {
         InMemoryMessageWallPort statePort = new InMemoryMessageWallPort();
-        StartMessageWallInteractor interactor = new StartMessageWallInteractor(statePort);
+        StartMessageWallInteractor interactor = new StartMessageWallInteractor(
+            ActivityTestLayouts::messageWall,
+            statePort
+        );
 
         MessageWallViewResult result = interactor.start();
 
@@ -32,7 +36,10 @@ class MessageWallInteractorTest {
     @Test
     void selecting_required_notes_updates_count() {
         InMemoryMessageWallPort statePort = new InMemoryMessageWallPort();
-        StartMessageWallInteractor startInteractor = new StartMessageWallInteractor(statePort);
+        StartMessageWallInteractor startInteractor = new StartMessageWallInteractor(
+            ActivityTestLayouts::messageWall,
+            statePort
+        );
         MoveMessageActorInteractor moveInteractor = new MoveMessageActorInteractor(statePort, statePort);
         InspectMessageNoteInteractor inspectInteractor = new InspectMessageNoteInteractor(statePort, statePort);
 

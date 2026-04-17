@@ -48,27 +48,27 @@ public final class ActivityEndingSignalsAdapter implements LoadEndingSignalsPort
 
     @Override
     public EndingSignals load() {
-        SignalConsoleState signalState = loadSignalConsoleStatePort.load().orElseGet(SignalConsoleState::initial);
-        PropsArchiveState propsState = loadPropsArchiveStatePort.load().orElseGet(PropsArchiveState::initial);
-        CenterpieceTableState centerpieceState = loadCenterpieceTableStatePort.load().orElseGet(CenterpieceTableState::initial);
-        PhotoBayState photoState = loadPhotoBayStatePort.load().orElseGet(PhotoBayState::initial);
-        HandoverCorridorState handoverState = loadHandoverCorridorStatePort.load().orElseGet(HandoverCorridorState::initial);
-        MessageWallState messageState = loadMessageWallStatePort.load().orElseGet(MessageWallState::initial);
-        FinaleStageState finaleState = loadFinaleStageStatePort.load().orElseGet(FinaleStageState::initial);
+        SignalConsoleState signalState = loadSignalConsoleStatePort.load().orElse(null);
+        PropsArchiveState propsState = loadPropsArchiveStatePort.load().orElse(null);
+        CenterpieceTableState centerpieceState = loadCenterpieceTableStatePort.load().orElse(null);
+        PhotoBayState photoState = loadPhotoBayStatePort.load().orElse(null);
+        HandoverCorridorState handoverState = loadHandoverCorridorStatePort.load().orElse(null);
+        MessageWallState messageState = loadMessageWallStatePort.load().orElse(null);
+        FinaleStageState finaleState = loadFinaleStageStatePort.load().orElse(null);
 
         int setupCareScore = 0;
-        if (signalState.inspectedCount() == signalControlCount()) {
+        if (signalState != null && signalState.inspectedCount() == signalControlCount()) {
             setupCareScore++;
         }
-        setupCareScore += hasOptionalReview(propsState.reviewedOptionalCount());
-        setupCareScore += hasOptionalReview(centerpieceState.reviewedOptionalCount());
-        setupCareScore += hasOptionalReview(photoState.reviewedOptionalCount());
-        setupCareScore += hasOptionalReview(finaleState.reviewedOptionalCount());
+        setupCareScore += hasOptionalReview(optionalReviewCount(propsState));
+        setupCareScore += hasOptionalReview(optionalReviewCount(centerpieceState));
+        setupCareScore += hasOptionalReview(optionalReviewCount(photoState));
+        setupCareScore += hasOptionalReview(optionalReviewCount(finaleState));
 
         return new EndingSignals(
             setupCareScore,
-            handoverState.reviewedOptionalCount(),
-            messageState.reviewedOptionalCount()
+            optionalReviewCount(handoverState),
+            optionalReviewCount(messageState)
         );
     }
 
@@ -78,5 +78,29 @@ public final class ActivityEndingSignalsAdapter implements LoadEndingSignalsPort
 
     private static int signalControlCount() {
         return SignalControlId.values().length;
+    }
+
+    private static int optionalReviewCount(PropsArchiveState state) {
+        return state == null ? 0 : state.reviewedOptionalCount();
+    }
+
+    private static int optionalReviewCount(CenterpieceTableState state) {
+        return state == null ? 0 : state.reviewedOptionalCount();
+    }
+
+    private static int optionalReviewCount(PhotoBayState state) {
+        return state == null ? 0 : state.reviewedOptionalCount();
+    }
+
+    private static int optionalReviewCount(HandoverCorridorState state) {
+        return state == null ? 0 : state.reviewedOptionalCount();
+    }
+
+    private static int optionalReviewCount(MessageWallState state) {
+        return state == null ? 0 : state.reviewedOptionalCount();
+    }
+
+    private static int optionalReviewCount(FinaleStageState state) {
+        return state == null ? 0 : state.reviewedOptionalCount();
     }
 }

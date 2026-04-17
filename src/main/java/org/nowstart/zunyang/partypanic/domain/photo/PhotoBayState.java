@@ -6,9 +6,11 @@ import java.util.EnumSet;
 import java.util.Objects;
 import java.util.Set;
 import org.nowstart.zunyang.partypanic.domain.common.Direction;
+import org.nowstart.zunyang.partypanic.domain.common.GridActivityLayout;
 import org.nowstart.zunyang.partypanic.domain.common.Position;
 
 public record PhotoBayState(
+    GridActivityLayout<PhotoFocusId> layout,
     Position actorPosition,
     Direction facing,
     PhotoFocusId activeFocus,
@@ -18,10 +20,8 @@ public record PhotoBayState(
     String statusMessage
 ) {
 
-    private static final int WIDTH = 7;
-    private static final int HEIGHT = 5;
-
     public PhotoBayState {
+        Objects.requireNonNull(layout, "layout must not be null");
         Objects.requireNonNull(actorPosition, "actorPosition must not be null");
         Objects.requireNonNull(facing, "facing must not be null");
         Objects.requireNonNull(lockedFocuses, "lockedFocuses must not be null");
@@ -37,28 +37,30 @@ public record PhotoBayState(
         reviewedOptionalFocuses = Collections.unmodifiableSet(reviewedNormalized);
     }
 
-    public static PhotoBayState initial() {
-        Position start = new Position(3, 2);
+    public static PhotoBayState initial(GridActivityLayout<PhotoFocusId> layout) {
+        Position start = layout.actorStart();
         return refresh(
+            layout,
             start,
             Direction.UP,
             null,
             Set.of(),
             Set.of(),
-            previewMessage(Direction.UP, start)
+            previewMessage(layout, Direction.UP, start)
         );
     }
 
     public PhotoBayState move(Direction direction) {
         Position nextPosition = actorPosition.translate(direction);
-        Position resolved = isWalkable(nextPosition) ? nextPosition : actorPosition;
+        Position resolved = layout.isWalkable(nextPosition) ? nextPosition : actorPosition;
         return refresh(
+            layout,
             resolved,
             direction,
             null,
             lockedFocuses,
             reviewedOptionalFocuses,
-            previewMessage(direction, resolved)
+            previewMessage(layout, direction, resolved)
         );
     }
 
@@ -66,6 +68,7 @@ public record PhotoBayState(
         PhotoFocusId focus = facingFocus();
         if (focus == null) {
             return refresh(
+                layout,
                 actorPosition,
                 facing,
                 null,
@@ -77,6 +80,7 @@ public record PhotoBayState(
 
         if (lockedFocuses.contains(focus)) {
             return refresh(
+                layout,
                 actorPosition,
                 facing,
                 focus,
@@ -91,6 +95,7 @@ public record PhotoBayState(
             nextLocked.addAll(lockedFocuses);
             nextLocked.add(focus);
             return refresh(
+                layout,
                 actorPosition,
                 facing,
                 focus,
@@ -102,6 +107,7 @@ public record PhotoBayState(
 
         if (reviewedOptionalFocuses.contains(focus)) {
             return refresh(
+                layout,
                 actorPosition,
                 facing,
                 focus,
@@ -116,6 +122,7 @@ public record PhotoBayState(
         nextReviewed.add(focus);
 
         return refresh(
+            layout,
             actorPosition,
             facing,
             focus,
@@ -138,18 +145,19 @@ public record PhotoBayState(
     }
 
     public PhotoFocusId facingFocus() {
-        return focusAt(actorPosition.translate(facing));
+        return layout.pointAt(actorPosition.translate(facing));
     }
 
     public int width() {
-        return WIDTH;
+        return layout.width();
     }
 
     public int height() {
-        return HEIGHT;
+        return layout.height();
     }
 
     private static PhotoBayState refresh(
+        GridActivityLayout<PhotoFocusId> layout,
         Position actorPosition,
         Direction facing,
         PhotoFocusId activeFocus,
@@ -166,6 +174,7 @@ public record PhotoBayState(
             : statusMessage;
 
         return new PhotoBayState(
+            layout,
             actorPosition,
             facing,
             activeFocus,
@@ -176,23 +185,12 @@ public record PhotoBayState(
         );
     }
 
-    private static boolean isWalkable(Position position) {
-        return position.x() >= 0
-            && position.x() < WIDTH
-            && position.y() >= 0
-            && position.y() < HEIGHT
-            && focusAt(position) == null;
-    }
-
-    private static PhotoFocusId focusAt(Position position) {
-        return Arrays.stream(PhotoFocusId.values())
-            .filter(focus -> focus.position().equals(position))
-            .findFirst()
-            .orElse(null);
-    }
-
-    private static String previewMessage(Direction direction, Position actorPosition) {
-        PhotoFocusId focus = focusAt(actorPosition.translate(direction));
+    private static String previewMessage(
+        GridActivityLayout<PhotoFocusId> layout,
+        Direction direction,
+        Position actorPosition
+    ) {
+        PhotoFocusId focus = layout.pointAt(actorPosition.translate(direction));
         if (focus == null) {
             return "포토 베이를 돌며 남길 장면의 중심선을 먼저 찾는다.";
         }

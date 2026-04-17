@@ -3,6 +3,7 @@ package org.nowstart.zunyang.partypanic.application.props;
 import java.util.Arrays;
 import org.nowstart.zunyang.partypanic.application.dto.result.PropsArchiveViewResult;
 import org.nowstart.zunyang.partypanic.application.dto.result.PropsItemView;
+import org.nowstart.zunyang.partypanic.domain.common.Position;
 import org.nowstart.zunyang.partypanic.domain.props.PropsArchiveState;
 import org.nowstart.zunyang.partypanic.domain.props.PropsItemId;
 
@@ -33,15 +34,18 @@ final class PropsArchiveViewMapper {
             state.readyToReturn(),
             state.statusMessage(),
             Arrays.stream(PropsItemId.values())
-                .map(item -> new PropsItemView(
-                    item.name(),
-                    item.label(),
-                    item.position().x(),
-                    item.position().y(),
-                    item.required(),
-                    state.collected(item),
-                    state.activeItem() == item
-                ))
+                .map(item -> {
+                    Position position = state.layout().positionOf(item);
+                    return new PropsItemView(
+                        item.name(),
+                        item.label(),
+                        position.x(),
+                        position.y(),
+                        item.required(),
+                        state.collected(item),
+                        state.activeItem() == item
+                    );
+                })
                 .toList()
         );
     }

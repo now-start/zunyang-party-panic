@@ -6,9 +6,11 @@ import java.util.EnumSet;
 import java.util.Objects;
 import java.util.Set;
 import org.nowstart.zunyang.partypanic.domain.common.Direction;
+import org.nowstart.zunyang.partypanic.domain.common.GridActivityLayout;
 import org.nowstart.zunyang.partypanic.domain.common.Position;
 
 public record HandoverCorridorState(
+    GridActivityLayout<HandoverClueId> layout,
     Position actorPosition,
     Direction facing,
     HandoverClueId activeClue,
@@ -18,10 +20,8 @@ public record HandoverCorridorState(
     String statusMessage
 ) {
 
-    private static final int WIDTH = 7;
-    private static final int HEIGHT = 5;
-
     public HandoverCorridorState {
+        Objects.requireNonNull(layout, "layout must not be null");
         Objects.requireNonNull(actorPosition, "actorPosition must not be null");
         Objects.requireNonNull(facing, "facing must not be null");
         Objects.requireNonNull(collectedClues, "collectedClues must not be null");
@@ -37,28 +37,30 @@ public record HandoverCorridorState(
         reviewedOptionalClues = Collections.unmodifiableSet(reviewedNormalized);
     }
 
-    public static HandoverCorridorState initial() {
-        Position start = new Position(3, 2);
+    public static HandoverCorridorState initial(GridActivityLayout<HandoverClueId> layout) {
+        Position start = layout.actorStart();
         return refresh(
+            layout,
             start,
             Direction.UP,
             null,
             Set.of(),
             Set.of(),
-            previewMessage(Direction.UP, start)
+            previewMessage(layout, Direction.UP, start)
         );
     }
 
     public HandoverCorridorState move(Direction direction) {
         Position nextPosition = actorPosition.translate(direction);
-        Position resolved = isWalkable(nextPosition) ? nextPosition : actorPosition;
+        Position resolved = layout.isWalkable(nextPosition) ? nextPosition : actorPosition;
         return refresh(
+            layout,
             resolved,
             direction,
             null,
             collectedClues,
             reviewedOptionalClues,
-            previewMessage(direction, resolved)
+            previewMessage(layout, direction, resolved)
         );
     }
 
@@ -66,6 +68,7 @@ public record HandoverCorridorState(
         HandoverClueId clue = facingClue();
         if (clue == null) {
             return refresh(
+                layout,
                 actorPosition,
                 facing,
                 null,
@@ -77,6 +80,7 @@ public record HandoverCorridorState(
 
         if (collectedClues.contains(clue)) {
             return refresh(
+                layout,
                 actorPosition,
                 facing,
                 clue,
@@ -91,6 +95,7 @@ public record HandoverCorridorState(
             nextCollected.addAll(collectedClues);
             nextCollected.add(clue);
             return refresh(
+                layout,
                 actorPosition,
                 facing,
                 clue,
@@ -102,6 +107,7 @@ public record HandoverCorridorState(
 
         if (reviewedOptionalClues.contains(clue)) {
             return refresh(
+                layout,
                 actorPosition,
                 facing,
                 clue,
@@ -116,6 +122,7 @@ public record HandoverCorridorState(
         nextReviewed.add(clue);
 
         return refresh(
+            layout,
             actorPosition,
             facing,
             clue,
@@ -138,18 +145,19 @@ public record HandoverCorridorState(
     }
 
     public HandoverClueId facingClue() {
-        return clueAt(actorPosition.translate(facing));
+        return layout.pointAt(actorPosition.translate(facing));
     }
 
     public int width() {
-        return WIDTH;
+        return layout.width();
     }
 
     public int height() {
-        return HEIGHT;
+        return layout.height();
     }
 
     private static HandoverCorridorState refresh(
+        GridActivityLayout<HandoverClueId> layout,
         Position actorPosition,
         Direction facing,
         HandoverClueId activeClue,
@@ -166,6 +174,7 @@ public record HandoverCorridorState(
             : statusMessage;
 
         return new HandoverCorridorState(
+            layout,
             actorPosition,
             facing,
             activeClue,
@@ -176,23 +185,12 @@ public record HandoverCorridorState(
         );
     }
 
-    private static boolean isWalkable(Position position) {
-        return position.x() >= 0
-            && position.x() < WIDTH
-            && position.y() >= 0
-            && position.y() < HEIGHT
-            && clueAt(position) == null;
-    }
-
-    private static HandoverClueId clueAt(Position position) {
-        return Arrays.stream(HandoverClueId.values())
-            .filter(clue -> clue.position().equals(position))
-            .findFirst()
-            .orElse(null);
-    }
-
-    private static String previewMessage(Direction direction, Position actorPosition) {
-        HandoverClueId clue = clueAt(actorPosition.translate(direction));
+    private static String previewMessage(
+        GridActivityLayout<HandoverClueId> layout,
+        Direction direction,
+        Position actorPosition
+    ) {
+        HandoverClueId clue = layout.pointAt(actorPosition.translate(direction));
         if (clue == null) {
             return "기록 복도를 따라 걸으며 이어진 밤의 흔적을 찾는다.";
         }

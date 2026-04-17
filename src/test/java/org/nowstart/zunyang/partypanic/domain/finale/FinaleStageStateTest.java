@@ -5,12 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 import org.nowstart.zunyang.partypanic.domain.common.Direction;
+import org.nowstart.zunyang.partypanic.support.ActivityTestLayouts;
 
 class FinaleStageStateTest {
 
     @Test
     void checking_required_points_makes_finale_ready() {
-        FinaleStageState state = FinaleStageState.initial();
+        FinaleStageState state = FinaleStageState.initial(ActivityTestLayouts.finaleStage());
 
         state = state.inspect();
         state = state.move(Direction.LEFT).move(Direction.LEFT).move(Direction.UP).inspect();
@@ -25,7 +26,7 @@ class FinaleStageStateTest {
 
     @Test
     void optional_point_is_left_for_later() {
-        FinaleStageState state = FinaleStageState.initial()
+        FinaleStageState state = FinaleStageState.initial(ActivityTestLayouts.finaleStage())
             .move(Direction.LEFT)
             .move(Direction.LEFT)
             .move(Direction.DOWN)

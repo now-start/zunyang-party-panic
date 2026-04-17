@@ -12,13 +12,17 @@ import org.nowstart.zunyang.partypanic.application.port.out.LoadCenterpieceTable
 import org.nowstart.zunyang.partypanic.application.port.out.SaveCenterpieceTableStatePort;
 import org.nowstart.zunyang.partypanic.domain.centerpiece.CenterpieceTableState;
 import org.nowstart.zunyang.partypanic.domain.common.Direction;
+import org.nowstart.zunyang.partypanic.support.ActivityTestLayouts;
 
 class CenterpieceTableInteractorTest {
 
     @Test
     void start_initializes_table_state() {
         InMemoryCenterpieceTablePort statePort = new InMemoryCenterpieceTablePort();
-        StartCenterpieceTableInteractor interactor = new StartCenterpieceTableInteractor(statePort);
+        StartCenterpieceTableInteractor interactor = new StartCenterpieceTableInteractor(
+            ActivityTestLayouts::centerpieceTable,
+            statePort
+        );
 
         CenterpieceTableViewResult result = interactor.start();
 
@@ -32,7 +36,10 @@ class CenterpieceTableInteractorTest {
     @Test
     void inspecting_required_points_updates_layout_count() {
         InMemoryCenterpieceTablePort statePort = new InMemoryCenterpieceTablePort();
-        StartCenterpieceTableInteractor startInteractor = new StartCenterpieceTableInteractor(statePort);
+        StartCenterpieceTableInteractor startInteractor = new StartCenterpieceTableInteractor(
+            ActivityTestLayouts::centerpieceTable,
+            statePort
+        );
         MoveCenterpieceActorInteractor moveInteractor = new MoveCenterpieceActorInteractor(statePort, statePort);
         InspectCenterpiecePlacementInteractor inspectInteractor = new InspectCenterpiecePlacementInteractor(statePort, statePort);
 

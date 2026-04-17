@@ -4,8 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
-import org.nowstart.zunyang.partypanic.adapter.out.content.PreviewHubLayoutAdapter;
 import org.nowstart.zunyang.partypanic.adapter.out.content.ResourceChapterScriptAdapter;
+import org.nowstart.zunyang.partypanic.adapter.out.content.ResourceGridActivityLayoutAdapter;
+import org.nowstart.zunyang.partypanic.adapter.out.content.ResourceHubLayoutAdapter;
 import org.nowstart.zunyang.partypanic.adapter.out.save.InMemoryChapterStateAdapter;
 import org.nowstart.zunyang.partypanic.adapter.out.save.InMemoryHubStateAdapter;
 import org.nowstart.zunyang.partypanic.adapter.out.save.InMemoryRunProgressAdapter;
@@ -31,13 +32,16 @@ import org.nowstart.zunyang.partypanic.application.signal.StartSignalConsoleInte
 import org.nowstart.zunyang.partypanic.domain.chapter.ChapterId;
 import org.nowstart.zunyang.partypanic.domain.common.Direction;
 import org.nowstart.zunyang.partypanic.domain.session.EndingSignals;
+import org.nowstart.zunyang.partypanic.domain.signal.SignalControlId;
 
 class PreviewFlowSmokeTest {
 
     @Test
     void first_hub_slice_runs_from_start_to_next_unlock_using_authored_content() {
-        PreviewHubLayoutAdapter hubLayoutAdapter = new PreviewHubLayoutAdapter();
+        ResourceHubLayoutAdapter hubLayoutAdapter = new ResourceHubLayoutAdapter();
         ResourceChapterScriptAdapter chapterScriptAdapter = new ResourceChapterScriptAdapter();
+        ResourceGridActivityLayoutAdapter<SignalControlId> signalLayoutAdapter =
+            new ResourceGridActivityLayoutAdapter<>("content/layouts/signal-console.json", SignalControlId.class);
         InMemoryHubStateAdapter hubStateAdapter = new InMemoryHubStateAdapter();
         InMemoryChapterStateAdapter chapterStateAdapter = new InMemoryChapterStateAdapter();
         InMemoryRunProgressAdapter runProgressAdapter = new InMemoryRunProgressAdapter();
@@ -79,7 +83,8 @@ class PreviewFlowSmokeTest {
             runProgressAdapter,
             () -> new EndingSignals(0, 0, 0)
         );
-        StartSignalConsoleInteractor startSignalConsoleInteractor = new StartSignalConsoleInteractor(signalStateAdapter);
+        StartSignalConsoleInteractor startSignalConsoleInteractor =
+            new StartSignalConsoleInteractor(signalLayoutAdapter, signalStateAdapter);
         MoveSignalActorInteractor moveSignalActorInteractor = new MoveSignalActorInteractor(
             signalStateAdapter,
             signalStateAdapter

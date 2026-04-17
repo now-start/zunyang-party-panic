@@ -3,6 +3,7 @@ package org.nowstart.zunyang.partypanic.application.message;
 import java.util.Arrays;
 import org.nowstart.zunyang.partypanic.application.dto.result.MessageNoteView;
 import org.nowstart.zunyang.partypanic.application.dto.result.MessageWallViewResult;
+import org.nowstart.zunyang.partypanic.domain.common.Position;
 import org.nowstart.zunyang.partypanic.domain.message.MessageNoteId;
 import org.nowstart.zunyang.partypanic.domain.message.MessageWallState;
 
@@ -33,16 +34,19 @@ final class MessageWallViewMapper {
             state.readyToReturn(),
             state.statusMessage(),
             Arrays.stream(MessageNoteId.values())
-                .map(note -> new MessageNoteView(
-                    note.name(),
-                    note.label(),
-                    note.excerpt(),
-                    note.position().x(),
-                    note.position().y(),
-                    note.required(),
-                    state.selected(note),
-                    state.activeNote() == note
-                ))
+                .map(note -> {
+                    Position position = state.layout().positionOf(note);
+                    return new MessageNoteView(
+                        note.name(),
+                        note.label(),
+                        note.excerpt(),
+                        position.x(),
+                        position.y(),
+                        note.required(),
+                        state.selected(note),
+                        state.activeNote() == note
+                    );
+                })
                 .toList()
         );
     }

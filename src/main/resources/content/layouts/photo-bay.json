@@ -1,0 +1,15 @@
+{
+  "width": 7,
+  "height": 5,
+  "actorStart": {
+    "x": 3,
+    "y": 2
+  },
+  "points": [
+    { "id": "FRAME_GUIDE", "x": 3, "y": 4 },
+    { "id": "STOOL_MARK", "x": 1, "y": 2 },
+    { "id": "KEY_LIGHT", "x": 5, "y": 2 },
+    { "id": "BACKDROP_LINE", "x": 3, "y": 0 },
+    { "id": "FLOOR_DECOR", "x": 5, "y": 4 }
+  ]
+}

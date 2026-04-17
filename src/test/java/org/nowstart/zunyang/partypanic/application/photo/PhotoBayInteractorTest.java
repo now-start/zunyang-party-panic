@@ -12,13 +12,17 @@ import org.nowstart.zunyang.partypanic.application.port.out.LoadPhotoBayStatePor
 import org.nowstart.zunyang.partypanic.application.port.out.SavePhotoBayStatePort;
 import org.nowstart.zunyang.partypanic.domain.common.Direction;
 import org.nowstart.zunyang.partypanic.domain.photo.PhotoBayState;
+import org.nowstart.zunyang.partypanic.support.ActivityTestLayouts;
 
 class PhotoBayInteractorTest {
 
     @Test
     void start_initializes_photo_bay_state() {
         InMemoryPhotoBayPort statePort = new InMemoryPhotoBayPort();
-        StartPhotoBayInteractor interactor = new StartPhotoBayInteractor(statePort);
+        StartPhotoBayInteractor interactor = new StartPhotoBayInteractor(
+            ActivityTestLayouts::photoBay,
+            statePort
+        );
 
         PhotoBayViewResult result = interactor.start();
 
@@ -32,7 +36,10 @@ class PhotoBayInteractorTest {
     @Test
     void inspecting_required_focuses_updates_frame_count() {
         InMemoryPhotoBayPort statePort = new InMemoryPhotoBayPort();
-        StartPhotoBayInteractor startInteractor = new StartPhotoBayInteractor(statePort);
+        StartPhotoBayInteractor startInteractor = new StartPhotoBayInteractor(
+            ActivityTestLayouts::photoBay,
+            statePort
+        );
         MovePhotoActorInteractor moveInteractor = new MovePhotoActorInteractor(statePort, statePort);
         InspectPhotoFocusInteractor inspectInteractor = new InspectPhotoFocusInteractor(statePort, statePort);
 

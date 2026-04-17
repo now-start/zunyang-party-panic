@@ -13,13 +13,17 @@ import org.nowstart.zunyang.partypanic.application.port.out.LoadSignalConsoleSta
 import org.nowstart.zunyang.partypanic.application.port.out.SaveSignalConsoleStatePort;
 import org.nowstart.zunyang.partypanic.domain.common.Direction;
 import org.nowstart.zunyang.partypanic.domain.signal.SignalConsoleState;
+import org.nowstart.zunyang.partypanic.support.ActivityTestLayouts;
 
 class SignalConsoleInteractorTest {
 
     @Test
     void start_seeds_initial_console_state() {
         InMemorySignalConsolePort statePort = new InMemorySignalConsolePort();
-        StartSignalConsoleInteractor interactor = new StartSignalConsoleInteractor(statePort);
+        StartSignalConsoleInteractor interactor = new StartSignalConsoleInteractor(
+            ActivityTestLayouts::signalConsole,
+            statePort
+        );
 
         SignalConsoleViewResult result = interactor.start();
 
@@ -33,7 +37,10 @@ class SignalConsoleInteractorTest {
     @Test
     void movement_and_adjustment_flow_reaches_stabilized_state() {
         InMemorySignalConsolePort statePort = new InMemorySignalConsolePort();
-        StartSignalConsoleInteractor startInteractor = new StartSignalConsoleInteractor(statePort);
+        StartSignalConsoleInteractor startInteractor = new StartSignalConsoleInteractor(
+            ActivityTestLayouts::signalConsole,
+            statePort
+        );
         MoveSignalActorInteractor moveInteractor = new MoveSignalActorInteractor(statePort, statePort);
         InspectSignalControlUseCase inspectInteractor = new InspectSignalControlInteractor(statePort, statePort);
         AdjustSignalSettingInteractor adjustInteractor = new AdjustSignalSettingInteractor(statePort, statePort);

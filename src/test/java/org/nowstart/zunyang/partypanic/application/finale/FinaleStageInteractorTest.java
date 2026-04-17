@@ -12,13 +12,17 @@ import org.nowstart.zunyang.partypanic.application.port.out.LoadFinaleStageState
 import org.nowstart.zunyang.partypanic.application.port.out.SaveFinaleStageStatePort;
 import org.nowstart.zunyang.partypanic.domain.common.Direction;
 import org.nowstart.zunyang.partypanic.domain.finale.FinaleStageState;
+import org.nowstart.zunyang.partypanic.support.ActivityTestLayouts;
 
 class FinaleStageInteractorTest {
 
     @Test
     void start_initializes_finale_stage_state() {
         InMemoryFinaleStagePort statePort = new InMemoryFinaleStagePort();
-        StartFinaleStageInteractor interactor = new StartFinaleStageInteractor(statePort);
+        StartFinaleStageInteractor interactor = new StartFinaleStageInteractor(
+            ActivityTestLayouts::finaleStage,
+            statePort
+        );
 
         FinaleStageViewResult result = interactor.start();
 
@@ -32,7 +36,10 @@ class FinaleStageInteractorTest {
     @Test
     void checking_required_points_updates_count() {
         InMemoryFinaleStagePort statePort = new InMemoryFinaleStagePort();
-        StartFinaleStageInteractor startInteractor = new StartFinaleStageInteractor(statePort);
+        StartFinaleStageInteractor startInteractor = new StartFinaleStageInteractor(
+            ActivityTestLayouts::finaleStage,
+            statePort
+        );
         MoveFinaleActorInteractor moveInteractor = new MoveFinaleActorInteractor(statePort, statePort);
         InspectFinaleCheckpointInteractor inspectInteractor = new InspectFinaleCheckpointInteractor(statePort, statePort);
 

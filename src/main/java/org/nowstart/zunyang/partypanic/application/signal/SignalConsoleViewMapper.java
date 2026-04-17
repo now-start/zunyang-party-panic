@@ -3,6 +3,7 @@ package org.nowstart.zunyang.partypanic.application.signal;
 import java.util.Arrays;
 import org.nowstart.zunyang.partypanic.application.dto.result.SignalConsoleViewResult;
 import org.nowstart.zunyang.partypanic.application.dto.result.SignalControlView;
+import org.nowstart.zunyang.partypanic.domain.common.Position;
 import org.nowstart.zunyang.partypanic.domain.signal.SignalConsoleState;
 import org.nowstart.zunyang.partypanic.domain.signal.SignalControlId;
 
@@ -24,18 +25,21 @@ final class SignalConsoleViewMapper {
             state.statusMessage(),
             state.stabilized(),
             Arrays.stream(SignalControlId.values())
-                .map(control -> new SignalControlView(
-                    control.name(),
-                    control.label(),
-                    control.position().x(),
-                    control.position().y(),
-                    state.levelOf(control),
-                    control.targetLevel(),
-                    control.describeLevel(state.levelOf(control)),
-                    control.describeLevel(control.targetLevel()),
-                    state.activeControl() == control,
-                    state.aligned(control)
-                ))
+                .map(control -> {
+                    Position position = state.layout().positionOf(control);
+                    return new SignalControlView(
+                        control.name(),
+                        control.label(),
+                        position.x(),
+                        position.y(),
+                        state.levelOf(control),
+                        control.targetLevel(),
+                        control.describeLevel(state.levelOf(control)),
+                        control.describeLevel(control.targetLevel()),
+                        state.activeControl() == control,
+                        state.aligned(control)
+                    );
+                })
                 .toList()
         );
     }

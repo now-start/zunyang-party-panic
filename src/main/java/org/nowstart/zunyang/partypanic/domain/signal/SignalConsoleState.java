@@ -6,9 +6,11 @@ import java.util.EnumSet;
 import java.util.Objects;
 import java.util.Set;
 import org.nowstart.zunyang.partypanic.domain.common.Direction;
+import org.nowstart.zunyang.partypanic.domain.common.GridActivityLayout;
 import org.nowstart.zunyang.partypanic.domain.common.Position;
 
 public record SignalConsoleState(
+    GridActivityLayout<SignalControlId> layout,
     Position actorPosition,
     Direction facing,
     SignalControlId activeControl,
@@ -23,10 +25,9 @@ public record SignalConsoleState(
 
     private static final int MIN_LEVEL = 0;
     private static final int MAX_LEVEL = 2;
-    private static final int WIDTH = 5;
-    private static final int HEIGHT = 5;
 
     public SignalConsoleState {
+        Objects.requireNonNull(layout, "layout must not be null");
         Objects.requireNonNull(actorPosition, "actorPosition must not be null");
         Objects.requireNonNull(facing, "facing must not be null");
         Objects.requireNonNull(inspectedControls, "inspectedControls must not be null");
@@ -37,9 +38,11 @@ public record SignalConsoleState(
         inspectedControls = Collections.unmodifiableSet(normalized);
     }
 
-    public static SignalConsoleState initial() {
+    public static SignalConsoleState initial(GridActivityLayout<SignalControlId> layout) {
+        Position start = layout.actorStart();
         return refresh(
-            new Position(2, 2),
+            layout,
+            start,
             Direction.UP,
             null,
             Set.of(),
@@ -47,14 +50,15 @@ public record SignalConsoleState(
             2,
             0,
             2,
-            previewMessage(Direction.UP, new Position(2, 2))
+            previewMessage(layout, Direction.UP, start)
         );
     }
 
     public SignalConsoleState move(Direction direction) {
         Position nextPosition = actorPosition.translate(direction);
-        Position resolvedPosition = isWalkable(nextPosition) ? nextPosition : actorPosition;
+        Position resolvedPosition = layout.isWalkable(nextPosition) ? nextPosition : actorPosition;
         return refresh(
+            layout,
             resolvedPosition,
             direction,
             null,
@@ -63,7 +67,7 @@ public record SignalConsoleState(
             lampLevel,
             monitorLevel,
             cueLevel,
-            previewMessage(direction, resolvedPosition)
+            previewMessage(layout, direction, resolvedPosition)
         );
     }
 
@@ -71,6 +75,7 @@ public record SignalConsoleState(
         SignalControlId control = facingControl();
         if (control == null) {
             return refresh(
+                layout,
                 actorPosition,
                 facing,
                 null,
@@ -86,6 +91,7 @@ public record SignalConsoleState(
         nextInspected.addAll(inspectedControls);
         nextInspected.add(control);
         return refresh(
+            layout,
             actorPosition,
             facing,
             control,
@@ -102,6 +108,7 @@ public record SignalConsoleState(
         SignalControlId control = activeControl != null ? activeControl : facingControl();
         if (control == null) {
             return refresh(
+                layout,
                 actorPosition,
                 facing,
                 null,
@@ -115,10 +122,10 @@ public record SignalConsoleState(
         }
 
         return switch (control) {
-            case MIC -> refresh(actorPosition, facing, control, inspectedControls, clamp(micLevel + delta), lampLevel, monitorLevel, cueLevel, tuningMessage(control, clamp(micLevel + delta)));
-            case LAMP -> refresh(actorPosition, facing, control, inspectedControls, micLevel, clamp(lampLevel + delta), monitorLevel, cueLevel, tuningMessage(control, clamp(lampLevel + delta)));
-            case MONITOR -> refresh(actorPosition, facing, control, inspectedControls, micLevel, lampLevel, clamp(monitorLevel + delta), cueLevel, tuningMessage(control, clamp(monitorLevel + delta)));
-            case CUE -> refresh(actorPosition, facing, control, inspectedControls, micLevel, lampLevel, monitorLevel, clamp(cueLevel + delta), tuningMessage(control, clamp(cueLevel + delta)));
+            case MIC -> refresh(layout, actorPosition, facing, control, inspectedControls, clamp(micLevel + delta), lampLevel, monitorLevel, cueLevel, tuningMessage(control, clamp(micLevel + delta)));
+            case LAMP -> refresh(layout, actorPosition, facing, control, inspectedControls, micLevel, clamp(lampLevel + delta), monitorLevel, cueLevel, tuningMessage(control, clamp(lampLevel + delta)));
+            case MONITOR -> refresh(layout, actorPosition, facing, control, inspectedControls, micLevel, lampLevel, clamp(monitorLevel + delta), cueLevel, tuningMessage(control, clamp(monitorLevel + delta)));
+            case CUE -> refresh(layout, actorPosition, facing, control, inspectedControls, micLevel, lampLevel, monitorLevel, clamp(cueLevel + delta), tuningMessage(control, clamp(cueLevel + delta)));
         };
     }
 
@@ -148,18 +155,19 @@ public record SignalConsoleState(
     }
 
     public SignalControlId facingControl() {
-        return controlAt(frontPosition());
+        return layout.pointAt(frontPosition());
     }
 
     public int width() {
-        return WIDTH;
+        return layout.width();
     }
 
     public int height() {
-        return HEIGHT;
+        return layout.height();
     }
 
     private static SignalConsoleState refresh(
+        GridActivityLayout<SignalControlId> layout,
         Position actorPosition,
         Direction facing,
         SignalControlId activeControl,
@@ -180,6 +188,7 @@ public record SignalConsoleState(
             : statusOverride;
 
         return new SignalConsoleState(
+            layout,
             actorPosition,
             facing,
             activeControl,
@@ -193,23 +202,12 @@ public record SignalConsoleState(
         );
     }
 
-    private static SignalControlId controlAt(Position position) {
-        return Arrays.stream(SignalControlId.values())
-            .filter(control -> control.position().equals(position))
-            .findFirst()
-            .orElse(null);
-    }
-
-    private static boolean isWalkable(Position position) {
-        return position.x() >= 0
-            && position.x() < WIDTH
-            && position.y() >= 0
-            && position.y() < HEIGHT
-            && controlAt(position) == null;
-    }
-
-    private static String previewMessage(Direction direction, Position actorPosition) {
-        SignalControlId control = controlAt(actorPosition.translate(direction));
+    private static String previewMessage(
+        GridActivityLayout<SignalControlId> layout,
+        Direction direction,
+        Position actorPosition
+    ) {
+        SignalControlId control = layout.pointAt(actorPosition.translate(direction));
         if (control == null) {
             return "큐 부스 안쪽으로 움직이며 장비 위치를 확인한다.";
         }

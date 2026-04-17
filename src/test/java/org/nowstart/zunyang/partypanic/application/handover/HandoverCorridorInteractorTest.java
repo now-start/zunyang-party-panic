@@ -12,13 +12,17 @@ import org.nowstart.zunyang.partypanic.application.port.out.LoadHandoverCorridor
 import org.nowstart.zunyang.partypanic.application.port.out.SaveHandoverCorridorStatePort;
 import org.nowstart.zunyang.partypanic.domain.common.Direction;
 import org.nowstart.zunyang.partypanic.domain.handover.HandoverCorridorState;
+import org.nowstart.zunyang.partypanic.support.ActivityTestLayouts;
 
 class HandoverCorridorInteractorTest {
 
     @Test
     void start_initializes_corridor_state() {
         InMemoryHandoverCorridorPort statePort = new InMemoryHandoverCorridorPort();
-        StartHandoverCorridorInteractor interactor = new StartHandoverCorridorInteractor(statePort);
+        StartHandoverCorridorInteractor interactor = new StartHandoverCorridorInteractor(
+            ActivityTestLayouts::handoverCorridor,
+            statePort
+        );
 
         HandoverCorridorViewResult result = interactor.start();
 
@@ -32,7 +36,10 @@ class HandoverCorridorInteractorTest {
     @Test
     void inspecting_required_clues_updates_count() {
         InMemoryHandoverCorridorPort statePort = new InMemoryHandoverCorridorPort();
-        StartHandoverCorridorInteractor startInteractor = new StartHandoverCorridorInteractor(statePort);
+        StartHandoverCorridorInteractor startInteractor = new StartHandoverCorridorInteractor(
+            ActivityTestLayouts::handoverCorridor,
+            statePort
+        );
         MoveHandoverActorInteractor moveInteractor = new MoveHandoverActorInteractor(statePort, statePort);
         InspectHandoverClueInteractor inspectInteractor = new InspectHandoverClueInteractor(statePort, statePort);
 

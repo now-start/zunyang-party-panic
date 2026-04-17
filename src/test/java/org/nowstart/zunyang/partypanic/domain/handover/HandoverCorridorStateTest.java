@@ -5,12 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 import org.nowstart.zunyang.partypanic.domain.common.Direction;
+import org.nowstart.zunyang.partypanic.support.ActivityTestLayouts;
 
 class HandoverCorridorStateTest {
 
     @Test
     void collecting_required_clues_makes_handover_ready() {
-        HandoverCorridorState state = HandoverCorridorState.initial();
+        HandoverCorridorState state = HandoverCorridorState.initial(ActivityTestLayouts.handoverCorridor());
 
         state = state.inspect();
         state = state.move(Direction.LEFT).move(Direction.LEFT).move(Direction.UP).inspect();
@@ -25,7 +26,7 @@ class HandoverCorridorStateTest {
 
     @Test
     void optional_clue_is_left_for_later() {
-        HandoverCorridorState state = HandoverCorridorState.initial()
+        HandoverCorridorState state = HandoverCorridorState.initial(ActivityTestLayouts.handoverCorridor())
             .move(Direction.LEFT)
             .move(Direction.LEFT)
             .move(Direction.DOWN)

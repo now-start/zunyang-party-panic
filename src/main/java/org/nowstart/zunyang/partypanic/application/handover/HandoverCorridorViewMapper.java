@@ -3,6 +3,7 @@ package org.nowstart.zunyang.partypanic.application.handover;
 import java.util.Arrays;
 import org.nowstart.zunyang.partypanic.application.dto.result.HandoverClueView;
 import org.nowstart.zunyang.partypanic.application.dto.result.HandoverCorridorViewResult;
+import org.nowstart.zunyang.partypanic.domain.common.Position;
 import org.nowstart.zunyang.partypanic.domain.handover.HandoverClueId;
 import org.nowstart.zunyang.partypanic.domain.handover.HandoverCorridorState;
 
@@ -33,15 +34,18 @@ final class HandoverCorridorViewMapper {
             state.readyToReturn(),
             state.statusMessage(),
             Arrays.stream(HandoverClueId.values())
-                .map(clue -> new HandoverClueView(
-                    clue.name(),
-                    clue.label(),
-                    clue.position().x(),
-                    clue.position().y(),
-                    clue.required(),
-                    state.collected(clue),
-                    state.activeClue() == clue
-                ))
+                .map(clue -> {
+                    Position position = state.layout().positionOf(clue);
+                    return new HandoverClueView(
+                        clue.name(),
+                        clue.label(),
+                        position.x(),
+                        position.y(),
+                        clue.required(),
+                        state.collected(clue),
+                        state.activeClue() == clue
+                    );
+                })
                 .toList()
         );
     }

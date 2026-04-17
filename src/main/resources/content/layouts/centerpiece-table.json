@@ -1,0 +1,15 @@
+{
+  "width": 7,
+  "height": 5,
+  "actorStart": {
+    "x": 3,
+    "y": 2
+  },
+  "points": [
+    { "id": "TOPPER_SLOT", "x": 3, "y": 4 },
+    { "id": "CANDLE_ARC", "x": 1, "y": 2 },
+    { "id": "RIBBON_LINE", "x": 5, "y": 2 },
+    { "id": "CLOTH_FOLD", "x": 3, "y": 0 },
+    { "id": "SIDE_DECOR", "x": 5, "y": 4 }
+  ]
+}

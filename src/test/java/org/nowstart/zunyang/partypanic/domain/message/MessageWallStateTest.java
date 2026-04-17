@@ -5,12 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 import org.nowstart.zunyang.partypanic.domain.common.Direction;
+import org.nowstart.zunyang.partypanic.support.ActivityTestLayouts;
 
 class MessageWallStateTest {
 
     @Test
     void selecting_required_notes_makes_message_wall_ready() {
-        MessageWallState state = MessageWallState.initial();
+        MessageWallState state = MessageWallState.initial(ActivityTestLayouts.messageWall());
 
         state = state.move(Direction.LEFT).move(Direction.LEFT).move(Direction.UP).inspect();
         state = state.move(Direction.RIGHT).move(Direction.RIGHT).move(Direction.RIGHT).move(Direction.RIGHT);
@@ -23,7 +24,7 @@ class MessageWallStateTest {
 
     @Test
     void optional_note_is_left_for_later() {
-        MessageWallState state = MessageWallState.initial()
+        MessageWallState state = MessageWallState.initial(ActivityTestLayouts.messageWall())
             .move(Direction.LEFT)
             .move(Direction.LEFT)
             .move(Direction.DOWN)

@@ -11,8 +11,9 @@ import org.nowstart.zunyang.partypanic.adapter.in.message.screen.MessageWallScre
 import org.nowstart.zunyang.partypanic.adapter.in.photo.screen.PhotoBayScreen;
 import org.nowstart.zunyang.partypanic.adapter.in.props.screen.PropsArchiveScreen;
 import org.nowstart.zunyang.partypanic.adapter.in.signal.screen.SignalConsoleScreen;
-import org.nowstart.zunyang.partypanic.adapter.out.content.PreviewHubLayoutAdapter;
 import org.nowstart.zunyang.partypanic.adapter.out.content.ResourceChapterScriptAdapter;
+import org.nowstart.zunyang.partypanic.adapter.out.content.ResourceGridActivityLayoutAdapter;
+import org.nowstart.zunyang.partypanic.adapter.out.content.ResourceHubLayoutAdapter;
 import org.nowstart.zunyang.partypanic.adapter.out.save.ActivityEndingSignalsAdapter;
 import org.nowstart.zunyang.partypanic.adapter.out.save.InMemoryCenterpieceTableStateAdapter;
 import org.nowstart.zunyang.partypanic.adapter.out.save.InMemoryFinaleStageStateAdapter;
@@ -60,14 +61,35 @@ import org.nowstart.zunyang.partypanic.application.hub.MoveHubActorInteractor;
 import org.nowstart.zunyang.partypanic.application.signal.MoveSignalActorInteractor;
 import org.nowstart.zunyang.partypanic.application.signal.StartSignalConsoleInteractor;
 import org.nowstart.zunyang.partypanic.config.bootstrap.PartyPanicGame;
+import org.nowstart.zunyang.partypanic.domain.centerpiece.CenterpiecePlacementId;
 import org.nowstart.zunyang.partypanic.domain.chapter.ChapterId;
+import org.nowstart.zunyang.partypanic.domain.finale.FinaleCheckpointId;
+import org.nowstart.zunyang.partypanic.domain.handover.HandoverClueId;
+import org.nowstart.zunyang.partypanic.domain.message.MessageNoteId;
+import org.nowstart.zunyang.partypanic.domain.photo.PhotoFocusId;
+import org.nowstart.zunyang.partypanic.domain.props.PropsItemId;
+import org.nowstart.zunyang.partypanic.domain.signal.SignalControlId;
 
 public final class GameModule {
 
     private static final String SESSION_PREFERENCES_NAME = "zunyang-party-panic-session";
 
-    private final PreviewHubLayoutAdapter previewHubLayoutAdapter = new PreviewHubLayoutAdapter();
+    private final ResourceHubLayoutAdapter resourceHubLayoutAdapter = new ResourceHubLayoutAdapter();
     private final ResourceChapterScriptAdapter resourceChapterScriptAdapter = new ResourceChapterScriptAdapter();
+    private final ResourceGridActivityLayoutAdapter<SignalControlId> signalConsoleLayoutAdapter =
+        new ResourceGridActivityLayoutAdapter<>("content/layouts/signal-console.json", SignalControlId.class);
+    private final ResourceGridActivityLayoutAdapter<PropsItemId> propsArchiveLayoutAdapter =
+        new ResourceGridActivityLayoutAdapter<>("content/layouts/props-archive.json", PropsItemId.class);
+    private final ResourceGridActivityLayoutAdapter<CenterpiecePlacementId> centerpieceTableLayoutAdapter =
+        new ResourceGridActivityLayoutAdapter<>("content/layouts/centerpiece-table.json", CenterpiecePlacementId.class);
+    private final ResourceGridActivityLayoutAdapter<PhotoFocusId> photoBayLayoutAdapter =
+        new ResourceGridActivityLayoutAdapter<>("content/layouts/photo-bay.json", PhotoFocusId.class);
+    private final ResourceGridActivityLayoutAdapter<HandoverClueId> handoverCorridorLayoutAdapter =
+        new ResourceGridActivityLayoutAdapter<>("content/layouts/handover-corridor.json", HandoverClueId.class);
+    private final ResourceGridActivityLayoutAdapter<MessageNoteId> messageWallLayoutAdapter =
+        new ResourceGridActivityLayoutAdapter<>("content/layouts/message-wall.json", MessageNoteId.class);
+    private final ResourceGridActivityLayoutAdapter<FinaleCheckpointId> finaleStageLayoutAdapter =
+        new ResourceGridActivityLayoutAdapter<>("content/layouts/finale-stage.json", FinaleCheckpointId.class);
     private final RuntimeHubStateAdapter runtimeHubStateAdapter = new RuntimeHubStateAdapter();
     private final RuntimeChapterStateAdapter runtimeChapterStateAdapter = new RuntimeChapterStateAdapter();
     private final RuntimeSessionSnapshotAdapter runtimeSessionSnapshotAdapter = new RuntimeSessionSnapshotAdapter();
@@ -95,13 +117,13 @@ public final class GameModule {
         inMemoryFinaleStageStateAdapter
     );
     private final LoadHubInteractor loadHubInteractor = new LoadHubInteractor(
-        previewHubLayoutAdapter,
+        resourceHubLayoutAdapter,
         runtimeHubStateAdapter,
         runtimeHubStateAdapter,
         runtimeSessionSnapshotAdapter
     );
     private final MoveHubActorInteractor moveHubActorInteractor = new MoveHubActorInteractor(
-        previewHubLayoutAdapter,
+        resourceHubLayoutAdapter,
         runtimeHubStateAdapter,
         runtimeHubStateAdapter,
         runtimeSessionSnapshotAdapter
@@ -131,7 +153,7 @@ public final class GameModule {
         activityEndingSignalsAdapter
     );
     private final InteractHubInteractor interactHubInteractor = new InteractHubInteractor(
-        previewHubLayoutAdapter,
+        resourceHubLayoutAdapter,
         runtimeHubStateAdapter,
         runtimeHubStateAdapter,
         runtimeSessionSnapshotAdapter
@@ -141,12 +163,13 @@ public final class GameModule {
         runtimeSessionSnapshotAdapter
     );
     private final RestartSessionUseCase restartSessionUseCase = new RestartSessionInteractor(
-        previewHubLayoutAdapter,
+        resourceHubLayoutAdapter,
         runtimeHubStateAdapter,
         runtimeChapterStateAdapter,
         runtimeSessionSnapshotAdapter
     );
     private final StartSignalConsoleInteractor startSignalConsoleInteractor = new StartSignalConsoleInteractor(
+        signalConsoleLayoutAdapter,
         inMemorySignalConsoleStateAdapter
     );
     private final MoveSignalActorInteractor moveSignalActorInteractor = new MoveSignalActorInteractor(
@@ -162,6 +185,7 @@ public final class GameModule {
         inMemorySignalConsoleStateAdapter
     );
     private final StartPropsArchiveInteractor startPropsArchiveInteractor = new StartPropsArchiveInteractor(
+        propsArchiveLayoutAdapter,
         inMemoryPropsArchiveStateAdapter
     );
     private final MovePropsActorInteractor movePropsActorInteractor = new MovePropsActorInteractor(
@@ -173,6 +197,7 @@ public final class GameModule {
         inMemoryPropsArchiveStateAdapter
     );
     private final StartCenterpieceTableInteractor startCenterpieceTableInteractor = new StartCenterpieceTableInteractor(
+        centerpieceTableLayoutAdapter,
         inMemoryCenterpieceTableStateAdapter
     );
     private final MoveCenterpieceActorInteractor moveCenterpieceActorInteractor = new MoveCenterpieceActorInteractor(
@@ -185,6 +210,7 @@ public final class GameModule {
             inMemoryCenterpieceTableStateAdapter
         );
     private final StartPhotoBayInteractor startPhotoBayInteractor = new StartPhotoBayInteractor(
+        photoBayLayoutAdapter,
         inMemoryPhotoBayStateAdapter
     );
     private final MovePhotoActorInteractor movePhotoActorInteractor = new MovePhotoActorInteractor(
@@ -196,7 +222,7 @@ public final class GameModule {
         inMemoryPhotoBayStateAdapter
     );
     private final StartHandoverCorridorInteractor startHandoverCorridorInteractor =
-        new StartHandoverCorridorInteractor(inMemoryHandoverCorridorStateAdapter);
+        new StartHandoverCorridorInteractor(handoverCorridorLayoutAdapter, inMemoryHandoverCorridorStateAdapter);
     private final MoveHandoverActorInteractor moveHandoverActorInteractor = new MoveHandoverActorInteractor(
         inMemoryHandoverCorridorStateAdapter,
         inMemoryHandoverCorridorStateAdapter
@@ -207,7 +233,7 @@ public final class GameModule {
             inMemoryHandoverCorridorStateAdapter
         );
     private final StartMessageWallInteractor startMessageWallInteractor =
-        new StartMessageWallInteractor(inMemoryMessageWallStateAdapter);
+        new StartMessageWallInteractor(messageWallLayoutAdapter, inMemoryMessageWallStateAdapter);
     private final MoveMessageActorInteractor moveMessageActorInteractor = new MoveMessageActorInteractor(
         inMemoryMessageWallStateAdapter,
         inMemoryMessageWallStateAdapter
@@ -218,7 +244,7 @@ public final class GameModule {
             inMemoryMessageWallStateAdapter
         );
     private final StartFinaleStageInteractor startFinaleStageInteractor =
-        new StartFinaleStageInteractor(inMemoryFinaleStageStateAdapter);
+        new StartFinaleStageInteractor(finaleStageLayoutAdapter, inMemoryFinaleStageStateAdapter);
     private final MoveFinaleActorInteractor moveFinaleActorInteractor = new MoveFinaleActorInteractor(
         inMemoryFinaleStageStateAdapter,
         inMemoryFinaleStageStateAdapter
@@ -238,7 +264,7 @@ public final class GameModule {
             Preferences preferences = Gdx.app.getPreferences(SESSION_PREFERENCES_NAME);
             sessionPreferencesSchemaManager.ensureCurrentSchema(preferences);
             runtimeSessionSnapshotAdapter.bindToPreferences(preferences);
-            runtimeHubStateAdapter.bindToPreferences(preferences, previewHubLayoutAdapter);
+            runtimeHubStateAdapter.bindToPreferences(preferences, resourceHubLayoutAdapter);
             runtimeChapterStateAdapter.bindToPreferences(preferences, resourceChapterScriptAdapter);
         }
         startGameUseCase.start();

@@ -1,0 +1,14 @@
+{
+  "width": 5,
+  "height": 5,
+  "actorStart": {
+    "x": 2,
+    "y": 2
+  },
+  "points": [
+    { "id": "MIC", "x": 1, "y": 3 },
+    { "id": "LAMP", "x": 3, "y": 3 },
+    { "id": "MONITOR", "x": 1, "y": 1 },
+    { "id": "CUE", "x": 3, "y": 1 }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "width": 7,
+  "height": 5,
+  "actorStart": {
+    "x": 3,
+    "y": 2
+  },
+  "points": [
+    { "id": "FIRST_GREETING", "x": 1, "y": 3 },
+    { "id": "QUIET_MOMENT", "x": 5, "y": 3 },
+    { "id": "WAITING_LINE", "x": 1, "y": 1 },
+    { "id": "MEMORY_WISH", "x": 3, "y": 1 },
+    { "id": "TONIGHT_WISH", "x": 5, "y": 1 }
+  ]
+}

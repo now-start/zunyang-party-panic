@@ -6,9 +6,11 @@ import java.util.EnumSet;
 import java.util.Objects;
 import java.util.Set;
 import org.nowstart.zunyang.partypanic.domain.common.Direction;
+import org.nowstart.zunyang.partypanic.domain.common.GridActivityLayout;
 import org.nowstart.zunyang.partypanic.domain.common.Position;
 
 public record PropsArchiveState(
+    GridActivityLayout<PropsItemId> layout,
     Position actorPosition,
     Direction facing,
     PropsItemId activeItem,
@@ -18,10 +20,8 @@ public record PropsArchiveState(
     String statusMessage
 ) {
 
-    private static final int WIDTH = 7;
-    private static final int HEIGHT = 5;
-
     public PropsArchiveState {
+        Objects.requireNonNull(layout, "layout must not be null");
         Objects.requireNonNull(actorPosition, "actorPosition must not be null");
         Objects.requireNonNull(facing, "facing must not be null");
         Objects.requireNonNull(collectedItems, "collectedItems must not be null");
@@ -37,28 +37,30 @@ public record PropsArchiveState(
         reviewedOptionalItems = Collections.unmodifiableSet(reviewedNormalized);
     }
 
-    public static PropsArchiveState initial() {
-        Position start = new Position(3, 2);
+    public static PropsArchiveState initial(GridActivityLayout<PropsItemId> layout) {
+        Position start = layout.actorStart();
         return refresh(
+            layout,
             start,
             Direction.UP,
             null,
             Set.of(),
             Set.of(),
-            previewMessage(Direction.UP, start)
+            previewMessage(layout, Direction.UP, start)
         );
     }
 
     public PropsArchiveState move(Direction direction) {
         Position nextPosition = actorPosition.translate(direction);
-        Position resolved = isWalkable(nextPosition) ? nextPosition : actorPosition;
+        Position resolved = layout.isWalkable(nextPosition) ? nextPosition : actorPosition;
         return refresh(
+            layout,
             resolved,
             direction,
             null,
             collectedItems,
             reviewedOptionalItems,
-            previewMessage(direction, resolved)
+            previewMessage(layout, direction, resolved)
         );
     }
 
@@ -66,6 +68,7 @@ public record PropsArchiveState(
         PropsItemId item = facingItem();
         if (item == null) {
             return refresh(
+                layout,
                 actorPosition,
                 facing,
                 null,
@@ -77,6 +80,7 @@ public record PropsArchiveState(
 
         if (collectedItems.contains(item)) {
             return refresh(
+                layout,
                 actorPosition,
                 facing,
                 item,
@@ -91,6 +95,7 @@ public record PropsArchiveState(
             nextCollected.addAll(collectedItems);
             nextCollected.add(item);
             return refresh(
+                layout,
                 actorPosition,
                 facing,
                 item,
@@ -102,6 +107,7 @@ public record PropsArchiveState(
 
         if (reviewedOptionalItems.contains(item)) {
             return refresh(
+                layout,
                 actorPosition,
                 facing,
                 item,
@@ -116,6 +122,7 @@ public record PropsArchiveState(
         nextReviewed.add(item);
 
         return refresh(
+            layout,
             actorPosition,
             facing,
             item,
@@ -138,18 +145,19 @@ public record PropsArchiveState(
     }
 
     public PropsItemId facingItem() {
-        return itemAt(actorPosition.translate(facing));
+        return layout.pointAt(actorPosition.translate(facing));
     }
 
     public int width() {
-        return WIDTH;
+        return layout.width();
     }
 
     public int height() {
-        return HEIGHT;
+        return layout.height();
     }
 
     private static PropsArchiveState refresh(
+        GridActivityLayout<PropsItemId> layout,
         Position actorPosition,
         Direction facing,
         PropsItemId activeItem,
@@ -166,6 +174,7 @@ public record PropsArchiveState(
             : statusMessage;
 
         return new PropsArchiveState(
+            layout,
             actorPosition,
             facing,
             activeItem,
@@ -176,23 +185,12 @@ public record PropsArchiveState(
         );
     }
 
-    private static boolean isWalkable(Position position) {
-        return position.x() >= 0
-            && position.x() < WIDTH
-            && position.y() >= 0
-            && position.y() < HEIGHT
-            && itemAt(position) == null;
-    }
-
-    private static PropsItemId itemAt(Position position) {
-        return Arrays.stream(PropsItemId.values())
-            .filter(item -> item.position().equals(position))
-            .findFirst()
-            .orElse(null);
-    }
-
-    private static String previewMessage(Direction direction, Position actorPosition) {
-        PropsItemId item = itemAt(actorPosition.translate(direction));
+    private static String previewMessage(
+        GridActivityLayout<PropsItemId> layout,
+        Direction direction,
+        Position actorPosition
+    ) {
+        PropsItemId item = layout.pointAt(actorPosition.translate(direction));
         if (item == null) {
             return "아카이브 선반 사이를 돌며 오늘 필요한 상자를 찾는다.";
         }

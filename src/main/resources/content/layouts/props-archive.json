@@ -1,0 +1,16 @@
+{
+  "width": 7,
+  "height": 5,
+  "actorStart": {
+    "x": 3,
+    "y": 2
+  },
+  "points": [
+    { "id": "RIBBON_BOX", "x": 1, "y": 3 },
+    { "id": "TOPPER_CASE", "x": 3, "y": 3 },
+    { "id": "GEL_PACK", "x": 5, "y": 3 },
+    { "id": "FABRIC_ROLL", "x": 1, "y": 1 },
+    { "id": "BASKET_SET", "x": 3, "y": 1 },
+    { "id": "MEMORY_DECOR", "x": 5, "y": 1 }
+  ]
+}

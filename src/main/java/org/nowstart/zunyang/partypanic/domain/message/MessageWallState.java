@@ -6,9 +6,11 @@ import java.util.EnumSet;
 import java.util.Objects;
 import java.util.Set;
 import org.nowstart.zunyang.partypanic.domain.common.Direction;
+import org.nowstart.zunyang.partypanic.domain.common.GridActivityLayout;
 import org.nowstart.zunyang.partypanic.domain.common.Position;
 
 public record MessageWallState(
+    GridActivityLayout<MessageNoteId> layout,
     Position actorPosition,
     Direction facing,
     MessageNoteId activeNote,
@@ -18,10 +20,8 @@ public record MessageWallState(
     String statusMessage
 ) {
 
-    private static final int WIDTH = 7;
-    private static final int HEIGHT = 5;
-
     public MessageWallState {
+        Objects.requireNonNull(layout, "layout must not be null");
         Objects.requireNonNull(actorPosition, "actorPosition must not be null");
         Objects.requireNonNull(facing, "facing must not be null");
         Objects.requireNonNull(selectedNotes, "selectedNotes must not be null");
@@ -37,28 +37,30 @@ public record MessageWallState(
         reviewedOptionalNotes = Collections.unmodifiableSet(reviewedNormalized);
     }
 
-    public static MessageWallState initial() {
-        Position start = new Position(3, 2);
+    public static MessageWallState initial(GridActivityLayout<MessageNoteId> layout) {
+        Position start = layout.actorStart();
         return refresh(
+            layout,
             start,
             Direction.UP,
             null,
             Set.of(),
             Set.of(),
-            previewMessage(Direction.UP, start)
+            previewMessage(layout, Direction.UP, start)
         );
     }
 
     public MessageWallState move(Direction direction) {
         Position nextPosition = actorPosition.translate(direction);
-        Position resolved = isWalkable(nextPosition) ? nextPosition : actorPosition;
+        Position resolved = layout.isWalkable(nextPosition) ? nextPosition : actorPosition;
         return refresh(
+            layout,
             resolved,
             direction,
             null,
             selectedNotes,
             reviewedOptionalNotes,
-            previewMessage(direction, resolved)
+            previewMessage(layout, direction, resolved)
         );
     }
 
@@ -66,6 +68,7 @@ public record MessageWallState(
         MessageNoteId note = facingNote();
         if (note == null) {
             return refresh(
+                layout,
                 actorPosition,
                 facing,
                 null,
@@ -77,6 +80,7 @@ public record MessageWallState(
 
         if (selectedNotes.contains(note)) {
             return refresh(
+                layout,
                 actorPosition,
                 facing,
                 note,
@@ -91,6 +95,7 @@ public record MessageWallState(
             nextSelected.addAll(selectedNotes);
             nextSelected.add(note);
             return refresh(
+                layout,
                 actorPosition,
                 facing,
                 note,
@@ -102,6 +107,7 @@ public record MessageWallState(
 
         if (reviewedOptionalNotes.contains(note)) {
             return refresh(
+                layout,
                 actorPosition,
                 facing,
                 note,
@@ -116,6 +122,7 @@ public record MessageWallState(
         nextReviewed.add(note);
 
         return refresh(
+            layout,
             actorPosition,
             facing,
             note,
@@ -138,18 +145,19 @@ public record MessageWallState(
     }
 
     public MessageNoteId facingNote() {
-        return noteAt(actorPosition.translate(facing));
+        return layout.pointAt(actorPosition.translate(facing));
     }
 
     public int width() {
-        return WIDTH;
+        return layout.width();
     }
 
     public int height() {
-        return HEIGHT;
+        return layout.height();
     }
 
     private static MessageWallState refresh(
+        GridActivityLayout<MessageNoteId> layout,
         Position actorPosition,
         Direction facing,
         MessageNoteId activeNote,
@@ -166,6 +174,7 @@ public record MessageWallState(
             : statusMessage;
 
         return new MessageWallState(
+            layout,
             actorPosition,
             facing,
             activeNote,
@@ -176,23 +185,12 @@ public record MessageWallState(
         );
     }
 
-    private static boolean isWalkable(Position position) {
-        return position.x() >= 0
-            && position.x() < WIDTH
-            && position.y() >= 0
-            && position.y() < HEIGHT
-            && noteAt(position) == null;
-    }
-
-    private static MessageNoteId noteAt(Position position) {
-        return Arrays.stream(MessageNoteId.values())
-            .filter(note -> note.position().equals(position))
-            .findFirst()
-            .orElse(null);
-    }
-
-    private static String previewMessage(Direction direction, Position actorPosition) {
-        MessageNoteId note = noteAt(actorPosition.translate(direction));
+    private static String previewMessage(
+        GridActivityLayout<MessageNoteId> layout,
+        Direction direction,
+        Position actorPosition
+    ) {
+        MessageNoteId note = layout.pointAt(actorPosition.translate(direction));
         if (note == null) {
             return "메시지 월을 따라 오늘 곁에 둘 짧은 문장을 고른다.";
         }

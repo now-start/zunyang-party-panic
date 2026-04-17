@@ -3,6 +3,7 @@ package org.nowstart.zunyang.partypanic.application.finale;
 import java.util.Arrays;
 import org.nowstart.zunyang.partypanic.application.dto.result.FinaleCheckpointView;
 import org.nowstart.zunyang.partypanic.application.dto.result.FinaleStageViewResult;
+import org.nowstart.zunyang.partypanic.domain.common.Position;
 import org.nowstart.zunyang.partypanic.domain.finale.FinaleCheckpointId;
 import org.nowstart.zunyang.partypanic.domain.finale.FinaleStageState;
 
@@ -33,15 +34,18 @@ final class FinaleStageViewMapper {
             state.readyToReturn(),
             state.statusMessage(),
             Arrays.stream(FinaleCheckpointId.values())
-                .map(checkpoint -> new FinaleCheckpointView(
-                    checkpoint.name(),
-                    checkpoint.label(),
-                    checkpoint.position().x(),
-                    checkpoint.position().y(),
-                    checkpoint.required(),
-                    state.checked(checkpoint),
-                    state.activeCheckpoint() == checkpoint
-                ))
+                .map(checkpoint -> {
+                    Position position = state.layout().positionOf(checkpoint);
+                    return new FinaleCheckpointView(
+                        checkpoint.name(),
+                        checkpoint.label(),
+                        position.x(),
+                        position.y(),
+                        checkpoint.required(),
+                        state.checked(checkpoint),
+                        state.activeCheckpoint() == checkpoint
+                    );
+                })
                 .toList()
         );
     }
